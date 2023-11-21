@@ -55,4 +55,41 @@
 
 * Element Buffer Object, EBO或者称为Index Buffer Object, IBO
 
+#### 可配置阶段
 
+顶点着色器，集合着色器和片段着色器
+
+#### 顶点输入
+
+绘制图形之前，我们需要先给OpenGL输入一些顶点数据，openGL的NDC只处理在[-1.0 ， 1.0]之间的数据（一般来说，vertex shader会将之前的空间坐标系转换至NDC中），之后再做一次视口变换即可。
+
+* 我们通过VBO来管理这个内存，他会在GPU显存中存储大量顶点，使用VBO的好处是我们可以一次性发送大批数据到显卡上，而不是每个顶点发送一次。
+
+#### 创建着色器
+
+* 使用glCreateShader(\<SHADER_TYPE\>)来创建shader
+
+* 使用`glShadaerSource`来替换shader中的代码
+
+* `glCompileShader`用于编译shader。
+
+#### 链接着色器
+
+* 说是链接，其实是单独的顶点着色器与片段着色器需要一个shaderprogram才可以使用。
+
+下面的例子自行体会
+
+```cpp
+unsigned int shaderProgram;
+shaderProgram = glCreateProgram();
+
+glAttachShader(shaderProgram, vertexShader);
+glAttachShader(shaderProgram, fragmentShader);
+glLinkProgram(shaderProgram);
+// 激活该程序对象
+glUseProgram(ShaderProgram);
+```
+
+#### 链接顶点属性
+
+需要指定OpenGL如何理解顶点数据。
