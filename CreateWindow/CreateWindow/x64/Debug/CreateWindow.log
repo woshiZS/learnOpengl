@@ -1,3 +1,2 @@
 ﻿  source.cpp
-D:\vsRepos\CreateWindow\CreateWindow\source.cpp(105,19): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-  CreateWindow.vcxproj -> D:\vsRepos\CreateWindow\x64\Debug\CreateWindow.exe
+  CreateWindow.vcxproj -> C:\Users\jason.liu\learnOpengl\CreateWindow\x64\Debug\CreateWindow.exe

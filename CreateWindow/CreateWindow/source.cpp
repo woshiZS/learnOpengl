@@ -3,9 +3,25 @@
 #include <iostream>
 #include "Shader.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
+
+//int main() {
+//	int width, height, nrChannels;
+//	stbi_set_flip_vertically_on_load(true);
+//	unsigned char* data = stbi_load("pic.png", &width, &height, &nrChannels, 0);
+//
+//	for (size_t i = 0; i < 50; i++)
+//	{
+//		std::cout << (int)data[i] << std::endl;
+//	}
+//
+//	stbi_image_free(data);
+//}
 
 
 int main() {
@@ -31,40 +47,33 @@ int main() {
 	glViewport(0, 0, 800, 600);
 	/*glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);*/
-
-	/*int nAttributes;
-	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nAttributes);
-	std::cout << "Maxiumum nr of vertex attributes supported : " << nAttributes << std::endl;*/
-
 	Shader* myShader = new Shader("vertexSource.txt", "fragmentSource.txt");
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	float vertices[] = {
-		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-		 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-		 0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-		 0.8f, 0.8f, 0.0f, 1.0f, 0.0f, 1.0f,
-		 1.0f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f,
+		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // å³ä¸Š
+		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // å³ä¸‹
+		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // å·¦ä¸‹
+		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // å·¦ä¸Š
 	};
 
 	unsigned int indices[] = {
-		0, 1, 2,
-		/*2, 3, 1,
-		3, 1, 4,*/
+		0, 2, 1,
+		0, 3, 2,
 	};
 
 	unsigned int VAO;
 	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO); // °ó¶¨¸ø¶¨²ÎÊýµ½µ±Ç°µÄËùÐèÒª»æÖÆµÄVertex ArrayÉÏÃæ
+	glBindVertexArray(VAO); // ï¿½ó¶¨¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Æµï¿½Vertex Arrayï¿½ï¿½ï¿½ï¿½
 
 	unsigned int VBO;
 	glGenBuffers(1, &VBO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); // °ó¶¨VBOµ½VAOÉÏÃæµÄARRAY_BUFFER²¿·Ö
-	// ÏÂÃæÕâ¸öº¯Êý¾ÍÊÇ½«ÓÃ»§¶¨ÒåµÄ¶¥µãÊý¾Ý´«ËÍµ½Ä¿Ç°°ó¶¨µÄbufferÉÏÈ¥¡£
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // ×îºóÒ»¸ö²ÎÊý±íÃ÷ÓÃÍ¾£¬Èç¹ûÊÇ¸Ä±äºÜ¶à£¬Ó¦¸Ã½«Êý¾Ý´æÔÚ¿ÉÒÔ¸ßËÙÐ´ÈëµÄµØ·½¡£
+	glBindBuffer(GL_ARRAY_BUFFER, VBO); // ï¿½ï¿½VBOï¿½ï¿½VAOï¿½ï¿½ï¿½ï¿½ï¿½ARRAY_BUFFERï¿½ï¿½ï¿½ï¿½
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½Íµï¿½Ä¿Ç°ï¿½ó¶¨µï¿½bufferï¿½ï¿½È¥ï¿½ï¿½
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¸Ä±ï¿½Ü¶à£¬Ó¦ï¿½Ã½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½Ú¿ï¿½ï¿½Ô¸ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ÄµØ·ï¿½ï¿½ï¿½
 
 	unsigned int EBO;
 	glGenBuffers(1, &EBO);
@@ -72,46 +81,51 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-#pragma region hwk2
-	/*unsigned int VAO1;
-	glGenVertexArrays(1, &VAO1);
-	glBindVertexArray(VAO1);
-
-	unsigned int VBO1;
-	glGenBuffers(1, &VBO1);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO1);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	unsigned int EBO1;
-	glGenBuffers(1, &EBO1);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
-
-#pragma endregion
-
-	glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(6);
-	glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(7);
+	glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(8);
 	
 
+	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load("box.jpg", &width, &height, &nrChannels, 0);
+
+	unsigned int texture1, texture2;
+	
+	glGenTextures(1, &texture1);
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	stbi_image_free(data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+	glGenTextures(1, &texture2);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	stbi_image_free(data);
+
+	myShader->use();
+	myShader->setInt("ourTexture", 0);
+	myShader->setInt("anotherTexture", 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+
+	
 	while (!glfwWindowShouldClose(window)) {
 		processInput(window);
 		// rendering commands here.
 		glClearColor(0.2f, 0.3f, 0.3f, 0.1f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-
-		float timeValue = glfwGetTime();
-		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-		int vertexColorLocation = glGetUniformLocation(myShader->getShaderProgramID(), "ourColor");
-
 		glBindVertexArray(VAO);
-		myShader->use();
-		glUniform4f(vertexColorLocation, 0, greenValue, 0, 1.0);
-		myShader->setFloat("shift", 0.5f);
-		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)0);
-		//glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
