@@ -1,30 +1,32 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <algorithm>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void key_callback(GLFWwindow* window, int key, int scanCode, int action, int mods);
 void processInput(GLFWwindow* window);
+float mixValue = 0.2f;
+float delta = 0.1f;
 
-
-//int main() {
-//	int width, height, nrChannels;
-//	stbi_set_flip_vertically_on_load(true);
-//	unsigned char* data = stbi_load("pic.png", &width, &height, &nrChannels, 0);
-//
-//	for (size_t i = 0; i < 50; i++)
-//	{
-//		std::cout << (int)data[i] << std::endl;
-//	}
-//
-//	stbi_image_free(data);
-//}
+void test() {
+	glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+	glm::mat4 trans(1.0f);
+	trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
+	vec = trans * vec;
+	std::cout << vec.x << vec.y << vec.z << std::endl;
+}
 
 
 int main() {
+	//test();
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -51,12 +53,13 @@ int main() {
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetKeyCallback(window, key_callback);
 
 	float vertices[] = {
-		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
-		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
+		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   2.0f, 2.0f,   // 右上
+		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,  2.0f, 0.0f,   // 右下
+		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 0.0f,   // 左下
+		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.0f, 2.0f    // 左上
 	};
 
 	unsigned int indices[] = {
@@ -97,6 +100,10 @@ int main() {
 	
 	glGenTextures(1, &texture1);
 	glBindTexture(GL_TEXTURE_2D, texture1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	stbi_image_free(data);
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -104,6 +111,12 @@ int main() {
 	data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
 	glGenTextures(1, &texture2);
 	glBindTexture(GL_TEXTURE_2D, texture2);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	/*float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);*/
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	stbi_image_free(data);
@@ -117,7 +130,9 @@ int main() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, texture2);
 
-	
+	const float radius = 0.8f;
+
+
 	while (!glfwWindowShouldClose(window)) {
 		processInput(window);
 		// rendering commands here.
@@ -125,7 +140,24 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glBindVertexArray(VAO);
+		myShader->setFloat("mixRatio", mixValue);
+		float timeVal = (float)glfwGetTime();
+		glm::mat4 trans(1.0f);
+		trans = glm::translate(trans, glm::vec3(radius * cos(timeVal), radius * sin(timeVal), 0.0f));
+		trans = glm::rotate(trans, timeVal, glm::vec3(0.0, 0.0, 1.0));
+		//trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+		unsigned int transformLoc = glGetUniformLocation(myShader->getShaderProgramID(), "transform");
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+		myShader->use();
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+
+		glm::mat4 anotherTrans(1.0f);
+		anotherTrans = glm::translate(anotherTrans, glm::vec3(-0.5f, 0.5f, 0.0f));
+		float scaleVal = sin(timeVal) / 2 + 0.5f;
+		anotherTrans = glm::scale(anotherTrans, glm::vec3(scaleVal, scaleVal, scaleVal));
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(anotherTrans));
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -140,8 +172,17 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
+void key_callback(GLFWwindow* window, int key, int scanCode, int action, int mods) {
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+		mixValue = std::max(0.0f, std::min(1.0f, mixValue + delta));
+
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+		mixValue = std::max(0.0f, std::min(1.0f, mixValue - delta));
+}
+
 void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
+	
 }
