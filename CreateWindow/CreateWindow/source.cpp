@@ -15,14 +15,8 @@ void key_callback(GLFWwindow* window, int key, int scanCode, int action, int mod
 void processInput(GLFWwindow* window);
 float mixValue = 0.2f;
 float delta = 0.1f;
-
-void test() {
-	glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
-	glm::mat4 trans(1.0f);
-	trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
-	vec = trans * vec;
-	std::cout << vec.x << vec.y << vec.z << std::endl;
-}
+const unsigned int WIDTH = 800;
+const unsigned int HEIGHT = 600;
 
 
 int main() {
@@ -46,25 +40,83 @@ int main() {
 		return -1;
 	}
 
-	glViewport(0, 0, 800, 600);
+	glViewport(0, 0, WIDTH, HEIGHT);
 	/*glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);*/
 	Shader* myShader = new Shader("vertexSource.txt", "fragmentSource.txt");
+	glEnable(GL_DEPTH_TEST);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetKeyCallback(window, key_callback);
 
 	float vertices[] = {
-		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   2.0f, 2.0f,   // 右上
-		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,  2.0f, 0.0f,   // 右下
+		0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
+		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,  1.0f, 0.0f,   // 右下
 		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 0.0f,   // 左下
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.0f, 2.0f    // 左上
+		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.0f, 1.0f    // 左上
 	};
 
 	unsigned int indices[] = {
 		0, 2, 1,
 		0, 3, 2,
+	};
+
+	float cubeVertices[] = {
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	};
+
+	glm::vec3 cubePostions[] = {
+		glm::vec3(0.0f,  0.0f,  0.0f),
+		glm::vec3(2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f,  3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f,  2.0f, -2.5f),
+		glm::vec3(1.5f,  0.2f, -1.5f),
+		glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
 
 	unsigned int VAO;
@@ -76,19 +128,19 @@ int main() {
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO); // ��VBO��VAO�����ARRAY_BUFFER����
 	// ��������������ǽ��û�����Ķ������ݴ��͵�Ŀǰ�󶨵�buffer��ȥ��
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // ���һ������������;������Ǹı�ܶ࣬Ӧ�ý����ݴ��ڿ��Ը���д��ĵط���
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW); // ���һ������������;������Ǹı�ܶ࣬Ӧ�ý����ݴ��ڿ��Ը���д��ĵط���
 
-	unsigned int EBO;
+	/*unsigned int EBO;
 	glGenBuffers(1, &EBO);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
 
-	glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(6);
-	glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(7);
-	glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	/*glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(7);*/
+	glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(8);
 	
 
@@ -132,32 +184,45 @@ int main() {
 
 	const float radius = 0.8f;
 
+#pragma region MVPMat
+
+	glm::mat4 view(1.0f);
+	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+	glm::mat4 projection(1.0f);
+	projection = glm::perspective(glm::radians(55.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
+
+	unsigned int shaderProgramId = myShader->getShaderProgramID();
+	int viewLoc = glGetUniformLocation(shaderProgramId, "view");
+	int projectionLoc = glGetUniformLocation(shaderProgramId, "projection");
+
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+#pragma endregion
+
+
 
 	while (!glfwWindowShouldClose(window)) {
 		processInput(window);
 		// rendering commands here.
 		glClearColor(0.2f, 0.3f, 0.3f, 0.1f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glBindVertexArray(VAO);
 		myShader->setFloat("mixRatio", mixValue);
 		float timeVal = (float)glfwGetTime();
-		glm::mat4 trans(1.0f);
-		trans = glm::translate(trans, glm::vec3(radius * cos(timeVal), radius * sin(timeVal), 0.0f));
-		trans = glm::rotate(trans, timeVal, glm::vec3(0.0, 0.0, 1.0));
-		//trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-		unsigned int transformLoc = glGetUniformLocation(myShader->getShaderProgramID(), "transform");
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-		myShader->use();
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+		for (int i = 0; i < 10; ++i) {
+			glm::mat4 model(1.0f);
+			model = glm::translate(model, cubePostions[i]);
+			model = glm::rotate(model, timeVal * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+			int modelLoc = glGetUniformLocation(shaderProgramId, "model");
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
-		glm::mat4 anotherTrans(1.0f);
-		anotherTrans = glm::translate(anotherTrans, glm::vec3(-0.5f, 0.5f, 0.0f));
-		float scaleVal = sin(timeVal) / 2 + 0.5f;
-		anotherTrans = glm::scale(anotherTrans, glm::vec3(scaleVal, scaleVal, scaleVal));
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(anotherTrans));
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
-
+			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+		
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
