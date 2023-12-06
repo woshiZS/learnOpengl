@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+﻿#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <algorithm>
@@ -137,13 +137,13 @@ int main() {
 
 	unsigned int VAO;
 	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO); // �󶨸�����������ǰ������Ҫ���Ƶ�Vertex Array����
+	glBindVertexArray(VAO); 
 
 	unsigned int VBO;
 	glGenBuffers(1, &VBO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); // ��VBO��VAO�����ARRAY_BUFFER����
-	// ��������������ǽ��û�����Ķ������ݴ��͵�Ŀǰ�󶨵�buffer��ȥ��
+	glBindBuffer(GL_ARRAY_BUFFER, VBO); 
+	
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW); // ���һ������������;������Ǹı�ܶ࣬Ӧ�ý����ݴ��ڿ��Ը���д��ĵط���
 
 	/*unsigned int EBO;
@@ -158,14 +158,14 @@ int main() {
 	glEnableVertexAttribArray(7);*/
 	glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(8);
-	
+
 
 	int width, height, nrChannels;
 	stbi_set_flip_vertically_on_load(true);
 	unsigned char* data = stbi_load("box.jpg", &width, &height, &nrChannels, 0);
 
 	unsigned int texture1, texture2;
-	
+
 	glGenTextures(1, &texture1);
 	glBindTexture(GL_TEXTURE_2D, texture1);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -210,7 +210,7 @@ int main() {
 	lastFrame = glfwGetTime();
 	unsigned int shaderProgramId = myShader->getShaderProgramID();
 	while (!glfwWindowShouldClose(window)) {
-		float timeVal = (float)glfwGetTime();		
+		float timeVal = (float)glfwGetTime();
 		deltaTime = timeVal - lastFrame;
 		lastFrame = timeVal;
 		processInput(window);
@@ -220,7 +220,7 @@ int main() {
 
 		glBindVertexArray(VAO);
 		myShader->setFloat("mixRatio", mixValue);
-		
+
 		// update cameraFront
 		glm::vec3 direction;
 		direction.y = sin(glm::radians(pitch));
@@ -246,7 +246,7 @@ int main() {
 			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-		
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -287,7 +287,7 @@ void processInput(GLFWwindow* window) {
 		cameraPos += cameraSpeed * cameraUp;
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 		cameraPos -= cameraSpeed * cameraUp;
-	
+
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
