@@ -15,47 +15,36 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\glad\src\glad.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="source.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\glad\src\glad.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Shader.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="stb_image.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="vertexSource.txt">
+    <Text Include="cubeFrag.txt">
       <Filter>资源文件</Filter>
     </Text>
-    <Text Include="fragmentSource.txt">
-      <Filter>资源文件</Filter>
-    </Text>
-    <Text Include="lightVert.txt">
+    <Text Include="vertext.txt">
       <Filter>资源文件</Filter>
     </Text>
     <Text Include="lightFrag.txt">
       <Filter>资源文件</Filter>
     </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="pic.png">
+    <Text Include="lightVertex.txt">
       <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="box.jpg">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="awesomeface.png">
-      <Filter>资源文件</Filter>
-    </Image>
+    </Text>
   </ItemGroup>
 </Project>
