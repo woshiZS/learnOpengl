@@ -27,7 +27,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastX = 400, lastY = 300;
 const float sensitivity = 0.05f;
-float yaw = -90.0f, pitch = 0.0f;
+float yaw = -180.0f, pitch = 0.0f;
 float fov = 45.0f;
 bool firstEntered = true;
 
@@ -217,6 +217,7 @@ int main() {
 		// rendering commands here.
 		glClearColor(0.2f, 0.3f, 0.3f, 0.1f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		printf("yaw: %f, pitch: %f\n", yaw, pitch);
 
 		glBindVertexArray(VAO);
 		myShader->setFloat("mixRatio", mixValue);
@@ -291,11 +292,11 @@ void processInput(GLFWwindow* window) {
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	if (firstEntered) {
+	/*if (firstEntered) {
 		lastX = xpos;
 		lastY = ypos;
 		firstEntered = false;
-	}
+	}*/
 	float xoffset = xpos - lastX;
 	float yoffset = ypos - lastY;
 	lastX = xpos;
