@@ -27,7 +27,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastX = 400, lastY = 300;
 const float sensitivity = 0.05f;
-float yaw = -180.0f, pitch = 0.0f;
+float yaw = -90.0f, pitch = 0.0f;
 float fov = 45.0f;
 bool firstEntered = true;
 
@@ -217,7 +217,7 @@ int main() {
 		// rendering commands here.
 		glClearColor(0.2f, 0.3f, 0.3f, 0.1f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		printf("yaw: %f, pitch: %f\n", yaw, pitch);
+		//printf("yaw: %f, pitch: %f\n", yaw, pitch);
 
 		glBindVertexArray(VAO);
 		myShader->setFloat("mixRatio", mixValue);
@@ -225,8 +225,8 @@ int main() {
 		// update cameraFront
 		glm::vec3 direction;
 		direction.y = sin(glm::radians(pitch));
-		direction.x = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-		direction.z = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+		direction.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+		direction.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
 		cameraFront = glm::normalize(direction);
 
 		glm::mat4 projection(1.0f);
@@ -305,7 +305,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
 
-	yaw -= xoffset;
+	yaw += xoffset;
 	pitch -= yoffset;
 	pitch = std::max(-89.0f, std::min(89.0f, pitch));
 }

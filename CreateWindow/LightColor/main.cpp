@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
+#include "Camera.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -15,9 +16,12 @@ void processInput(GLFWwindow* window);
 
 const unsigned int WIDTH = 800;
 const unsigned int HEIGHT = 600;
+Camera camera;
+float lastFrame = 0.0f;
 
 glm::vec3 lightPos(1.2f, 1.0f, -2.0f);
-
+void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+void scrollCallback(GLFWwindow* window, double x, double y);
 
 
 int main() {
@@ -42,15 +46,15 @@ int main() {
 	}
 
 	glViewport(0, 0, WIDTH, HEIGHT);
-	/*glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);*/
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	Shader* cubeShader = new Shader("vertext.txt", "cubeFrag.txt");
-	Shader* lightShader = new Shader("vertext.txt", "lightFrag.txt");
+	
+	Shader* cubeShader = new Shader("cubeVertex.txt", "cubeFrag.txt");
+	Shader* lightShader = new Shader("lightVertex.txt", "lightFrag.txt");
 	glEnable(GL_DEPTH_TEST); 
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture and hide the cursor
+	glfwSetCursorPosCallback(window, mouseCallback);
+	glfwSetScrollCallback(window, scrollCallback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture and hide the cursor
 
 	float cubeVertices[] = {
 	-0.5f, -0.5f, -0.5f,
@@ -124,11 +128,7 @@ int main() {
 	glm::mat4 model(1.0f);
 	model = glm::translate(model, glm::vec3(0, 0, -3.0f));
 	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 1.0f));
-	glm::mat4 view(1.0f);
-	glm::mat4 projection = glm::perspective(45.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 	cubeShader->setMat4("model", glm::value_ptr(model));
-	cubeShader->setMat4("view", glm::value_ptr(view));
-	cubeShader->setMat4("projection", glm::value_ptr(projection));
 	cubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 	cubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
@@ -138,17 +138,28 @@ int main() {
 	//lightModelMatrix = glm::translate(lightModelMatrix, glm::vec3(0.0f, 0.0f, -2.0f));
 	lightModelMatrix = glm::scale(lightModelMatrix, glm::vec3(0.2f));
 	lightShader->setMat4("model", glm::value_ptr(lightModelMatrix));
-	lightShader->setMat4("view", glm::value_ptr(view));
-	lightShader->setMat4("projection", glm::value_ptr(projection));
 
 	// we need to translate it to the 
-
+	lastFrame = glfwGetTime();
 	while (!glfwWindowShouldClose(window)) {
 		float timeVal = (float)glfwGetTime();
 		processInput(window);
 		// rendering commands here.
 		glClearColor(0.2f, 0.3f, 0.3f, 0.1f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		float deltaTime = timeVal - lastFrame;
+		camera.UpdatePosition(window, deltaTime);
+
+		glm::mat4 view = camera.GetViewMatrix();
+		glm::mat4 projection = camera.GetProjectionMatrix();
+
+		cubeShader->use();
+		cubeShader->setMat4("view", glm::value_ptr(view));
+		cubeShader->setMat4("projection", glm::value_ptr(projection));
+		lightShader->use();
+		lightShader->setMat4("view", glm::value_ptr(view));
+		lightShader->setMat4("projection", glm::value_ptr(projection));
+
 
 		glBindVertexArray(VAO);
 		cubeShader->use();
@@ -175,4 +186,12 @@ void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
+}
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+	camera.UpdateAngle(xpos, ypos);
+}
+
+void scrollCallback(GLFWwindow* window, double x, double y) {
+	camera.updateZoom(x, y);
 }
