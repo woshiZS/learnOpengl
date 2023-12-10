@@ -93,3 +93,9 @@ glUseProgram(ShaderProgram);
 #### 链接顶点属性
 
 需要指定OpenGL如何理解顶点数据。
+
+* 使用`glVertexAttribPointer`指定顶点数组的一系列属性
+
+* 完成之后，需要使用glEnableVertexAttribArray来指定
+
+* The zeroing behavior does not match x86 (i.e. this instruction zeroes when an index is out-of-range instead of when the most significant bit is 1); use a constant swizzle amount (or i8x16.shuffle) to avoid 3 extra x86 instructions in some runtimes.

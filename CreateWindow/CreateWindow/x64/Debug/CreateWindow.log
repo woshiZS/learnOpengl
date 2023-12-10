@@ -1,1 +1,7 @@
-﻿  CreateWindow.vcxproj -> C:\Users\jason.liu\learnOpengl\CreateWindow\x64\Debug\CreateWindow.exe
+﻿  source.cpp
+C:\Users\jason.liu\learnOpengl\CreateWindow\CreateWindow\source.cpp(210,25): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+C:\Users\jason.liu\learnOpengl\CreateWindow\CreateWindow\source.cpp(300,16): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+C:\Users\jason.liu\learnOpengl\CreateWindow\CreateWindow\source.cpp(301,16): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+C:\Users\jason.liu\learnOpengl\CreateWindow\CreateWindow\source.cpp(302,10): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+C:\Users\jason.liu\learnOpengl\CreateWindow\CreateWindow\source.cpp(303,10): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+  CreateWindow.vcxproj -> C:\Users\jason.liu\learnOpengl\CreateWindow\x64\Debug\CreateWindow.exe
