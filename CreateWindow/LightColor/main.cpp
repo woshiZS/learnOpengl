@@ -117,9 +117,9 @@ int main() {
 
 	glGenVertexArrays(1, &lightVAO);
 	glBindVertexArray(lightVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	//glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(6);
@@ -135,7 +135,7 @@ int main() {
 	lightShader->use();
 	glm::mat4 lightModelMatrix(1.0f);
 	lightModelMatrix = glm::translate(lightModelMatrix, lightPos);
-	//lightModelMatrix = glm::translate(lightModelMatrix, glm::vec3(0.0f, 0.0f, -2.0f));
+	
 	lightModelMatrix = glm::scale(lightModelMatrix, glm::vec3(0.2f));
 	lightShader->setMat4("model", glm::value_ptr(lightModelMatrix));
 
@@ -156,6 +156,7 @@ int main() {
 		cubeShader->use();
 		cubeShader->setMat4("view", glm::value_ptr(view));
 		cubeShader->setMat4("projection", glm::value_ptr(projection));
+
 		lightShader->use();
 		lightShader->setMat4("view", glm::value_ptr(view));
 		lightShader->setMat4("projection", glm::value_ptr(projection));
