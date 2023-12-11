@@ -91,7 +91,7 @@ void Shader::checkCompileErrors(GLuint shader, std::string type) {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		if (!success) {
 			glGetShaderInfoLog(shader, sizeof(infoLog), NULL, infoLog);
-			std::cout << "Shader compile error: " << infoLog << std::endl;
+			std::cout << type << " Shader compile error: " << infoLog << std::endl;
 		}
 	}
 }
@@ -112,6 +112,10 @@ void Shader::setFloat(const std::string& name, float value) const
 
 void Shader::setVec3(const std::string& name, float v1, float v2, float v3) const {
 	glUniform3f(glGetUniformLocation(ID, name.c_str()), v1, v2, v3);
+}
+
+void Shader::setVec3(const std::string& name, float *f) const {
+	glUniform3f(glGetUniformLocation(ID, name.c_str()), f[0], f[1], f[2]);
 }
 
 void Shader::setMat4(const std::string& name, float* matrixDataStream) const {

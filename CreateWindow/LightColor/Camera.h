@@ -16,7 +16,8 @@ private:
 	float lastX = 400, lastY = 300;
 	float widthHeightRatio = 800.0f/ 600.0f;
 	float fov = 45.0f, near = 0.1f, far = 100.0f;
-	float cameraMoveSpeed;
+	float cameraMoveSpeed = 2.5f;
+	float firstEntered = false;
 	const float sensitivity = 0.05f;
 public:
 	Camera(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f)):
@@ -38,7 +39,7 @@ public:
 
 	// This one is called in every frame
 	void UpdatePosition(GLFWwindow* window, float deltaTime) {
-		float cameraSpeed = 0.02f * deltaTime;
+		float cameraSpeed = cameraMoveSpeed * deltaTime;
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			cameraPos += cameraSpeed * cameraFront;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -56,6 +57,11 @@ public:
 	// The following are used by callbacks
 
 	void UpdateAngle(double xpos, double ypos) {
+		if (firstEntered){
+			lastX = xpos;
+			lastY = ypos;
+			firstEntered = false;
+		}
 		float xoffset = xpos - lastX;
 		float yoffset = ypos - lastY;
 		lastX = xpos;

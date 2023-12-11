@@ -14,7 +14,17 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scanCode, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window);
+void processInput(GLFWwindow* window, float deltaTime);
+void calculateLookAt();
+void printMat(glm::mat4 mat) {
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			printf("%f ", mat[i][j]);
+		}
+		printf("\n");
+	}
+}
+glm::mat4 ourLookAt;
 float mixValue = 0.2f;
 float delta = 0.1f;
 const unsigned int WIDTH = 800;
@@ -213,7 +223,7 @@ int main() {
 		float timeVal = (float)glfwGetTime();		
 		deltaTime = timeVal - lastFrame;
 		lastFrame = timeVal;
-		processInput(window);
+		processInput(window, deltaTime);
 		// rendering commands here.
 		glClearColor(0.2f, 0.3f, 0.3f, 0.1f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -234,7 +244,11 @@ int main() {
 		int projectionLoc = glGetUniformLocation(shaderProgramId, "projection");
 		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
+		calculateLookAt();
 		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+		/*printMat(view);
+		printMat(ourLookAt);*/
 		int viewLoc = glGetUniformLocation(shaderProgramId, "view");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		for (int i = 0; i < 10; ++i) {
@@ -270,7 +284,7 @@ void key_callback(GLFWwindow* window, int key, int scanCode, int action, int mod
 		mixValue = std::max(0.0f, std::min(1.0f, mixValue - delta));
 }
 
-void processInput(GLFWwindow* window) {
+void processInput(GLFWwindow* window, float deltaTime) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
@@ -313,4 +327,27 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	fov -= (float)yoffset;
 	fov = std::max(1.0f, std::min(45.0f, fov));
+}
+
+void calculateLookAt() {
+	glm::mat4 temp(1.0f);
+	glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
+	glm::vec3 up = glm::normalize(glm::cross(right, cameraFront));
+	temp[0][0] = right[0];
+	temp[1][0] = right[1];
+	temp[2][0] = right[2];
+	temp[0][1] = up[0];
+	temp[1][1] = up[1];
+	temp[2][1] = up[2];
+	temp[0][2] = -cameraFront[0];
+	temp[1][2] = -cameraFront[1];
+	temp[2][2] = -cameraFront[2];
+
+	glm::mat4 movMat(1.0f);
+	movMat[3][0] = -cameraPos[0];
+	movMat[3][1] = -cameraPos[1];
+	movMat[3][2] = -cameraPos[2];
+
+	ourLookAt = temp * movMat;
+	//printf("Here we go!\n");
 }
