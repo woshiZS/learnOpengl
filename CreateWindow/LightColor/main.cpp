@@ -135,15 +135,9 @@ int main() {
 	cubeShader->setMat4("model", glm::value_ptr(model));
 	cubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 	cubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-	cubeShader->setVec3("lightPos", glm::value_ptr(lightPos));
-
-	lightShader->use();
-	glm::mat4 lightModelMatrix(1.0f);
-	lightModelMatrix = glm::translate(lightModelMatrix, lightPos);
 	
-	lightModelMatrix = glm::scale(lightModelMatrix, glm::vec3(0.2f));
-	lightShader->setMat4("model", glm::value_ptr(lightModelMatrix));
 
+	float radius = 3.0f;
 	// we need to translate it to the 
 	lastFrame = glfwGetTime();
 	while (!glfwWindowShouldClose(window)) {
@@ -159,13 +153,22 @@ int main() {
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = camera.GetProjectionMatrix();
 
-		cubeShader->use();
-		cubeShader->setMat4("view", glm::value_ptr(view));
-		cubeShader->setMat4("projection", glm::value_ptr(projection));
-
 		lightShader->use();
 		lightShader->setMat4("view", glm::value_ptr(view));
 		lightShader->setMat4("projection", glm::value_ptr(projection));
+		glm::mat4 lightModelMatrix(1.0f);
+		glm::vec3 newLightPos(radius* sin(timeVal), 0.0f, radius* cos(timeVal));
+		lightModelMatrix = glm::translate(lightModelMatrix, newLightPos);
+		lightModelMatrix = glm::scale(lightModelMatrix, glm::vec3(0.2f));
+		lightShader->setMat4("model", glm::value_ptr(lightModelMatrix));
+
+		cubeShader->use();
+		cubeShader->setMat4("view", glm::value_ptr(view));
+		cubeShader->setMat4("projection", glm::value_ptr(projection));
+		cubeShader->setVec3("viewPos", glm::value_ptr(camera.GetCameraPos()));
+		cubeShader->setVec3("lightPos", glm::value_ptr(newLightPos));
+
+
 
 
 		glBindVertexArray(VAO);
