@@ -80,5 +80,9 @@ public:
 		fov -= (float)yoffset;
 		fov = std::max(1.0f, std::min(45.0f, fov));
 	}
+
+	glm::vec3 GetCameraPos() {
+		return cameraPos;
+	}
 };
 
