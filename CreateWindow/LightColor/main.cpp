@@ -134,7 +134,12 @@ int main() {
 	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 1.0f));
 	cubeShader->setMat4("model", glm::value_ptr(model));
 	cubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-	cubeShader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+	
+	cubeShader->setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+	cubeShader->setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+	cubeShader->setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+	cubeShader->setFloat("materila.shininess", 32.0f);
+
 	
 
 	float radius = 3.0f;
@@ -166,7 +171,19 @@ int main() {
 		cubeShader->setMat4("view", glm::value_ptr(view));
 		cubeShader->setMat4("projection", glm::value_ptr(projection));
 		cubeShader->setVec3("viewPos", glm::value_ptr(camera.GetCameraPos()));
-		cubeShader->setVec3("lightPos", glm::value_ptr(newLightPos));
+		cubeShader->setVec3("light.position", glm::value_ptr(newLightPos));
+
+		glm::vec3 lightColor;
+		lightColor.x = sin(timeVal * 2.0f);
+		lightColor.y = sin(timeVal * 0.7f);
+		lightColor.z = sin(timeVal * 1.3f);
+
+		glm::vec3 diffuseColor = lightColor * 0.5f;
+		glm::vec3 ambientColor = lightColor * 0.2f;
+
+		cubeShader->setVec3("light.ambient", glm::value_ptr(ambientColor));
+		cubeShader->setVec3("light.diffuse", glm::value_ptr(diffuseColor));
+		cubeShader->setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
 
 
