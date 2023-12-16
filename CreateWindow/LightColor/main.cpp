@@ -155,10 +155,9 @@ int main() {
 	model = glm::translate(model, glm::vec3(0, 0, -3.0f));
 	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 1.0f));
 	cubeShader->setMat4("model", glm::value_ptr(model));
-	cubeShader->setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 	
 	cubeShader->setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-	cubeShader->setFloat("materila.shininess", 64.0f);
+	cubeShader->setFloat("material.shininess", 64.0f);
 
 	
 
