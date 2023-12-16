@@ -9,8 +9,9 @@ uniform vec3 viewPos;
 struct Material{
 	vec3 ambient;
 	sampler2D diffuse;
-	vec3 specular;
+	sampler2D specular;
 	float shininess;
+	sampler2D emission;
 };
 
 struct Light{
@@ -23,6 +24,8 @@ struct Light{
 
 uniform Material material;
 uniform Light light;
+uniform float deltaY;
+uniform float MatrixLight;
 
 void main(){
 	vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
@@ -36,8 +39,13 @@ void main(){
 	vec3 reflectDir = reflect(-lightDir, normal);
 
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-	vec3 specular = material.specular * spec * light.specular;
+	vec3 specular = texture(material.specular, TexCoords).rgb * spec * light.specular;
 
+	
 	vec3 result = ambient + diffuse + specular;
+	float x = TexCoords.x;
+	float y = TexCoords.y;
+	if(x >= 0.1 && x <= 0.9 && y >= 0.1 && y <= 0.9)
+		result = result + MatrixLight * texture(material.emission, vec2(TexCoords.x + deltaY, TexCoords.y + deltaY)).rbg;
 	FragColor = vec4(result, 1.0);
 }

@@ -177,6 +177,7 @@ int main() {
 	unsigned int texture1, texture2;
 	
 	glGenTextures(1, &texture1);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture1);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -187,6 +188,7 @@ int main() {
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &texture2);
 	glBindTexture(GL_TEXTURE_2D, texture2);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -203,10 +205,10 @@ int main() {
 	myShader->setInt("ourTexture", 0);
 	myShader->setInt("anotherTexture", 1);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture1);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, texture2);
+	
+	/*glBindTexture(GL_TEXTURE_2D, texture1);
+	
+	glBindTexture(GL_TEXTURE_2D, texture2);*/
 
 #pragma region MVPMat
 
