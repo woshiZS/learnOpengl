@@ -70,8 +70,8 @@ public:
 		xoffset *= sensitivity;
 		yoffset *= sensitivity;
 
-		yaw -= xoffset;
-		pitch += yoffset;
+		yaw += xoffset;
+		pitch -= yoffset;
 		pitch = std::max(-89.0f, std::min(89.0f, pitch));
 		UpdateFront();
 	}
@@ -83,6 +83,10 @@ public:
 
 	glm::vec3 GetCameraPos() {
 		return cameraPos;
+	}
+
+	glm::vec3 GetCameraFront() {
+		return cameraFront;
 	}
 };
 

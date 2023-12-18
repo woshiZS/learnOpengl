@@ -2,6 +2,8 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <algorithm>
+#include <memory>
+#include <string>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -24,6 +26,16 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 void scrollCallback(GLFWwindow* window, double x, double y);
 unsigned int loadTexture(char const* path);
 
+template<typename ... Args>
+std::string string_format(const std::string& format, Args ... args)
+{
+	int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
+	if (size_s <= 0) { throw std::runtime_error("Error during formatting."); }
+	auto size = static_cast<size_t>(size_s);
+	std::unique_ptr<char[]> buf(new char[size]);
+	std::snprintf(buf.get(), size, format.c_str(), args ...);
+	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+}
 
 int main() {
 	//test();
@@ -48,8 +60,8 @@ int main() {
 
 	glViewport(0, 0, WIDTH, HEIGHT);
 	
-	Shader* cubeShader = new Shader("cubeVertex.txt", "cubeFrag.txt");
-	Shader* lightShader = new Shader("lightVertex.txt", "lightFrag.txt");
+	Shader* cubeShader = new Shader("cube.vert", "cube.frag");
+	Shader* lightShader = new Shader("light.vert", "light.frag");
 	glEnable(GL_DEPTH_TEST); 
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -113,6 +125,13 @@ int main() {
 	glm::vec3(1.5f,  2.0f, -2.5f),
 	glm::vec3(1.5f,  0.2f, -1.5f),
 	glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
+
+	glm::vec3 pointLightPositions[] = {
+	glm::vec3(0.7f,  0.2f,  2.0f),
+	glm::vec3(2.3f, -3.3f, -4.0f),
+	glm::vec3(-4.0f,  2.0f, -12.0f),
+	glm::vec3(0.0f,  0.0f, -3.0f)
 	};
 
 	unsigned int VAO, lightVAO;
@@ -189,31 +208,67 @@ int main() {
 		lightShader->use();
 		lightShader->setMat4("view", glm::value_ptr(view));
 		lightShader->setMat4("projection", glm::value_ptr(projection));
-		glm::mat4 lightModelMatrix(1.0f);
-		lightModelMatrix = glm::translate(lightModelMatrix, lightPos);
-		lightModelMatrix = glm::scale(lightModelMatrix, glm::vec3(0.2f));
-		lightShader->setMat4("model", glm::value_ptr(lightModelMatrix));
 		lightShader->setVec3("lightColor", glm::value_ptr(lightColor));
+		for (int i = 0; i < 4; i++) {
+			glm::mat4 lightModelMatrix(1.0f);
+			lightModelMatrix = glm::translate(lightModelMatrix, pointLightPositions[i]);
+			lightModelMatrix = glm::scale(lightModelMatrix, glm::vec3(0.2f));
+			lightShader->setMat4("model", glm::value_ptr(lightModelMatrix));
+			glBindVertexArray(lightVAO);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
 
 		cubeShader->use();
 		cubeShader->setMat4("view", glm::value_ptr(view));
 		cubeShader->setMat4("projection", glm::value_ptr(projection));
 		cubeShader->setVec3("viewPos", glm::value_ptr(camera.GetCameraPos()));
-		cubeShader->setFloat("light.constant", 1.0f);
-		cubeShader->setFloat("light.linear", 0.09f);
-		cubeShader->setFloat("light.quadratic", 0.032f);
+		
+#pragma region LightingUniform
+		cubeShader->setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+		cubeShader->setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
+		cubeShader->setVec3("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
+		cubeShader->setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
 
-		cubeShader->setVec3("light.position", glm::value_ptr(camera.GetCameraPos()));
-		cubeShader->setVec3("light.direction", glm::value_ptr(camera.GetCameraFront()));
-		cubeShader->setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
-		cubeShader->setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
-		//cubeShader->setVec3("light.direction", -0.2f, -1.0f, -0.3f);
+		for (int i = 0; i < 4; ++i) {
+			// need construct format string 
+			std::string nameTemp = string_format("pointLights[%d].", i);
+			cubeShader->setVec3(nameTemp + "position", glm::value_ptr(pointLightPositions[i]));
+			cubeShader->setFloat(nameTemp + "contant", 1.0f);
+			cubeShader->setFloat(nameTemp + "linear", 0.09f);
+			cubeShader->setFloat(nameTemp + "quadratic", 0.032f);
 
-		cubeShader->setVec3("light.ambient", glm::value_ptr(ambientColor));
-		cubeShader->setVec3("light.diffuse", glm::value_ptr(diffuseColor));
-		cubeShader->setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-		cubeShader->setFloat("deltaY", timeVal);
-		cubeShader->setFloat("MatrixLight", 2 * abs(sin(timeVal)));
+			cubeShader->setVec3(nameTemp + "ambient", 0.2f, 0.2f, 0.2f);
+			cubeShader->setVec3(nameTemp + "diffuse", 0.5f, 0.5f, 0.5f);
+			cubeShader->setVec3(nameTemp + "specular", 1.0f, 1.0f, 1.0f);
+		}
+
+		cubeShader->setVec3("spotLight.position", glm::value_ptr(camera.GetCameraPos()));
+		cubeShader->setVec3("spotLight.spotDir", glm::value_ptr(camera.GetCameraFront()));
+		cubeShader->setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+		cubeShader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+
+		cubeShader->setVec3("spotLight.ambient", 0.2f, 0.2f, 0.2f);
+		cubeShader->setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f);
+		cubeShader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+
+#pragma endregion
+
+
+		//cubeShader->setFloat("light.constant", 1.0f);
+		//cubeShader->setFloat("light.linear", 0.09f);
+		//cubeShader->setFloat("light.quadratic", 0.032f);
+
+		//cubeShader->setVec3("light.position", glm::value_ptr(camera.GetCameraPos()));
+		//cubeShader->setVec3("light.direction", glm::value_ptr(camera.GetCameraFront()));
+		//cubeShader->setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+		//cubeShader->setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+		////cubeShader->setVec3("light.direction", -0.2f, -1.0f, -0.3f);
+
+		//cubeShader->setVec3("light.ambient", glm::value_ptr(ambientColor));
+		//cubeShader->setVec3("light.diffuse", glm::value_ptr(diffuseColor));
+		//cubeShader->setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+		/*cubeShader->setFloat("deltaY", timeVal);
+		cubeShader->setFloat("MatrixLight", 2 * abs(sin(timeVal)));*/
 
 
 
@@ -227,10 +282,6 @@ int main() {
 			cubeShader->setMat4("model", glm::value_ptr(model));
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-
-		glBindVertexArray(lightVAO);
-		lightShader->use();
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
