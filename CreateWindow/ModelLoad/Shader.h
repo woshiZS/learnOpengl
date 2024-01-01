@@ -5,6 +5,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 class Shader
 {
 public:
@@ -17,6 +21,7 @@ public:
 	void setVec3(const std::string& name, float v1, float v2, float v3) const;
 	void setVec3(const std::string& name, const float* f) const;
 	void setMat4(const std::string& name, float* matrixDataStream) const;
+	void setMat4(const std::string& name, glm::mat4 matrixDataStream) const;
 	//~Shader();
 private:
 	std::string vertexString;

@@ -122,3 +122,8 @@ void Shader::setMat4(const std::string& name, float* matrixDataStream) const {
 	int modelLoc = glGetUniformLocation(ID, name.c_str());
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, matrixDataStream);
 }
+
+void Shader::setMat4(const std::string& name, glm::mat4 matrixDataStream) const {
+	int modelLoc = glGetUniformLocation(ID, name.c_str());
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(matrixDataStream));
+}
