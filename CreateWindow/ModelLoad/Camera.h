@@ -39,7 +39,10 @@ public:
 
 	// This one is called in every frame
 	void UpdatePosition(GLFWwindow* window, float deltaTime) {
-		float cameraSpeed = cameraMoveSpeed * deltaTime;
+		float ultraSpeed = 1.0f;
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			ultraSpeed = 5.0f;
+		float cameraSpeed = cameraMoveSpeed * ultraSpeed * deltaTime;
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			cameraPos += cameraSpeed * cameraFront;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

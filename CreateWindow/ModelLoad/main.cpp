@@ -60,6 +60,13 @@ int main() {
 
 	lastFrame = static_cast<float>(glfwGetTime());
 
+	ourShader.use();
+	ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+	ourShader.setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
+	ourShader.setVec3("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
+	ourShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+	ourShader.setFloat("material.shininess", 0.0f);
+
 	float cubeVertices[] = {
 		-0.5f, -0.5f, -0.5f,
 		 0.5f, -0.5f, -0.5f,
@@ -114,7 +121,13 @@ int main() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
 	
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(6);
+	glEnableVertexAttribArray(0);
+
+	lightShader.use();
+	glm::mat4 lightModel(1.0f);
+	lightModel = glm::translate(lightModel, glm::vec3(0.0f, 0.0f, 0.0f));
+	lightShader.setMat4("model", glm::value_ptr(lightModel));
+
 
 	while(!glfwWindowShouldClose(window))
 	{
@@ -139,7 +152,13 @@ int main() {
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
 		ourShader.setMat4("model", glm::value_ptr(model));
 
-		ourModel.Draw(ourShader);
+		 ourModel.Draw(ourShader);
+
+		/*lightShader.use();
+		lightShader.setMat4("projection", glm::value_ptr(projection));
+		lightShader.setMat4("view", glm::value_ptr(view));
+		glBindVertexArray(lightCubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);*/
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

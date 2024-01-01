@@ -118,7 +118,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 		{
 			glm::vec2 uv;
 			uv.x = mesh->mTextureCoords[0][i].x;
-			uv.y = mesh->mTextureCoords[0][0].y;
+			uv.y = mesh->mTextureCoords[0][i].y;
 			tempVert.TexCoords = uv;
 
 			// tangent
