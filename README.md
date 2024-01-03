@@ -175,3 +175,157 @@ glBindBuffer(GL_COPY_WRITE_BUFFER, vbo2);
 glCopyBufferSubData(GL_ARRAY_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, sizeof(vertexData));
 ```
 
+### 高级GLSL
+
+#### GLSL的内建变量
+
+* 除了我们已经知道的顶点属性，uniform变量之外，GLSL还定义了几个以```gl_```为前缀的变量
+* 查看所有内置变量[OpenGl wiki](https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL))
+
+##### gl_PointSize
+
+* 当渲染图元是point时生效，调整绘制点的大小。
+* 同时，我们也可以通过```glPointSize```来调整渲染出来的点的大小
+* 默认情况下，在顶点着色器中修改点的大小这个功能是禁用的，需要开启
+
+```cpp
+glEnable(GL_PROGRAM_POINT_SIZE);
+```
+
+* 一个典型的应用就是将点的大小设置为裁剪空间的z值，可以产生近小远大的效果
+
+```glsl
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    gl_PointSize = gl_Position.z;
+}
+```
+
+画点这种有利于在粒子生成之类的技术中很有意思。
+
+##### gl_VertexID
+
+这是一个输入变量，我们只能对他进行读取，`gl_VertexID`储存了正在绘制顶点的当前ID，glDrawElements进行渲染的时候，这个变量会存储正在绘制顶点的当前索引。当使用glDrawArrays进行绘制时，表示从渲染调用开始的已处理顶点数。
+
+#### 片段着色器变量
+
+##### gl_FragCoord
+
+表示片段的窗口坐标（原点为窗口的左下角），例如800 x 600，横坐标与纵坐标的范围分别就是0~800和0~600了。
+
+* gl_FragCoord的常见应用是根据窗口坐标进行不同的输出，例如根据左右进行不同风格的输出。
+
+```glsl
+void main()
+{             
+    if(gl_FragCoord.x < 400)
+        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        FragColor = vec4(0.0, 1.0, 0.0, 1.0);        
+}
+```
+
+##### gl_FrontFacing
+
+片段着色器另外一个很有意思的输入变量是`gl_FrontFacing`， 如果不开启面剔除，那么我们可以获得当前渲染片段是正面还是背面的信息，举例来说，我们可以根据正反面计算出不同的颜色。
+
+gl_FrontFacing是一个bool，是正面则是true，否则为False
+
+```glsl
+#version 330 core
+out vec4 FragColor;
+
+in vec2 TexCoords;
+
+uniform sampler2D frontTexture;
+uniform sampler2D backTexture;
+
+void main()
+{             
+    if(gl_FrontFacing)
+        FragColor = texture(frontTexture, TexCoords);
+    else
+        FragColor = texture(backTexture, TexCoords);
+}
+```
+
+##### gl_FragDepth
+
+可以允许我们写入深度值，但是这样会禁用提前深度测试。它被禁用的原因是，OpenGL无法在片段着色器运行**之前**得知片段将拥有的深度值，因为片段着色器可能会完全修改这个深度值。
+
+* 它被禁用的原因是，OpenGL无法在片段着色器运行**之前**得知片段将拥有的深度值，因为片段着色器可能会完全修改这个深度值。
+
+`condition`可以为下面的值：
+
+| 条件        | 描述                                                         |
+| :---------- | :----------------------------------------------------------- |
+| `any`       | 默认值。提前深度测试是禁用的，你会损失很多性能               |
+| `greater`   | 你只能让深度值比`gl_FragCoord.z`更大                         |
+| `less`      | 你只能让深度值比`gl_FragCoord.z`更小                         |
+| `unchanged` | 如果你要写入`gl_FragDepth`，你将只能写入`gl_FragCoord.z`的值 |
+
+通过将深度条件设置为`greater`或者`less`，OpenGL就能假设你只会写入比当前片段深度值更大或者更小的值了。这样子的话，当深度值比片段的深度值要小的时候，OpenGL仍是能够进行提前深度测试的。
+
+```glsl
+#version 420 core // 注意GLSL的版本！
+out vec4 FragColor;
+layout (depth_greater) out float gl_FragDepth;
+
+void main()
+{             
+    FragColor = vec4(1.0);
+    gl_FragDepth = gl_FragCoord.z + 0.1;
+}  
+```
+
+#### 接口块（Interface blocks）
+
+当程序变大时，从顶点着色器像片段着色器发送数据不能单单一个个变量这么去定义了。
+
+这样就可以利用结构体这样的结构，我们需要在结构体之前额外添加in或者out关键字，并且记得结构体类型名应该一致，但是名称可以不一样。
+
+例子如下：
+
+```glsl
+#version 330 core
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec2 aTexCoords;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out VS_OUT
+{
+    vec2 TexCoords;
+} vs_out;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);    
+    vs_out.TexCoords = aTexCoords;
+}  
+```
+
+片段着色器
+
+```glsl
+#version 330 core
+out vec4 FragColor;
+
+in VS_OUT
+{
+    vec2 TexCoords;
+} fs_in;
+
+uniform sampler2D texture;
+
+void main()
+{             
+    FragColor = texture(texture, fs_in.TexCoords);   
+}
+```
+
+#### Uniform缓冲对象
+
