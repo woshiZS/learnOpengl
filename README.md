@@ -329,3 +329,159 @@ void main()
 
 #### Uniform缓冲对象
 
+* OpenGL为我们提供了一个叫做Uniform缓冲对象(Uniform Buffer Object)的工具，它允许我们定义一系列在多个着色器中相同的**全局**Uniform变量。
+
+* 因为Uniform缓冲对象仍是一个缓冲，我们可以使用glGenBuffers来创建它，将它绑定到GL_UNIFORM_BUFFER缓冲目标，并将所有相关的uniform数据存入缓冲。
+
+For example:
+```glsl
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+layout (std140) uniform Matrices
+{
+    mat4 projection;
+    mat4 view;
+};
+
+uniform mat4 model;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}  
+```
+
+其中，访问projection和view不需要添加前缀。
+
+layout（std140）表示特定的uniform block layout(Uniform块布局)
+
+##### Uniform block layout
+
+Uniform block实际上还是储存在一个缓冲对象中的，实际上它只是一个预留内存，我们还需要告诉OpenGL内存的那一部分对应着色器中的哪一个uniform变量。
+
+```glsl
+layout (std140) uniform ExampleBlock
+{
+    float value;
+    vec3  vector;
+    mat4  matrix;
+    float values[3];
+    bool  boolean;
+    int   integer;
+};
+```
+
+在使用这些uniform变量之前我们需要每个变量的大小和偏移量，让我们能够把它放到buffer中。
+
+默认情况下，GLSL会使用一个叫做共享（Shared）布局的Uniform内存布局，GLSL可以为了优化二队uniform变量的位置进行变动。所以我们需要使用`glGetUniformIndices`这样的函数来查询这个信息，
+
+```c
+void glGetUniformIndices(	GLuint program,
+ 	GLsizei uniformCount,
+ 	const GLchar **uniformNames,
+ 	GLuint *uniformIndices);
+```
+
+参数解释：
+
+- **`program`**
+
+  Specifies the name of a program containing uniforms whose indices to query.
+
+- **`uniformCount`**
+
+  Specifies the number of uniforms whose indices to query.
+
+- **`uniformNames`**
+
+  Specifies the address of an array of pointers to buffers containing the names of the queried uniforms.
+
+- **`uniformIndices`**
+
+  Specifies the address of an array that will receive the indices of the uniforms.
+
+需要注意的是，我们可以一次性查询多个uniformNames，函数也会一次性写入多个indices(我在这里理解的就是偏移量)
+
+如果希望我们可以手动推算每个uniform变量的偏移量，我们可以使用std140布局。
+
+每个类型的变量都有一个base alignment，他表示一个遍阿玲Unifrom块中所占据的空间（包括padding）,另外一个概念叫做对齐偏移量(Aligned Offset）,他表示从block起始位置开始到这个变量的字节偏移量。**其中，对齐字节偏移量必须是基准对齐数量的倍数**，这点很好理解，和传统c++的内存对齐是差不多的概念。
+
+| 类型                | 布局规则                                                     |
+| :------------------ | :----------------------------------------------------------- |
+| 标量，比如int和bool | 每个标量的基准对齐量为N。                                    |
+| 向量                | 2N或者4N。这意味着vec3的基准对齐量为4N。                     |
+| 标量或向量的数组    | 每个元素的基准对齐量与vec4的相同。                           |
+| 矩阵                | 储存为列向量的数组，每个向量的基准对齐量与vec4的相同。       |
+| 结构体              | 等于所有元素根据规则计算后的大小，但会填充到vec4大小的倍数。 |
+
+完整的计算规则，可以再[OpenGL wiki](https://registry.khronos.org/OpenGL/extensions/ARB/ARB_uniform_buffer_object.txt)中找到
+
+使用该计算规则，计算之前的成员的例子：
+
+```glsl
+layout (std140) uniform ExampleBlock
+{
+                     // 基准对齐量       // 对齐偏移量
+    float value;     // 4               // 0 
+    vec3 vector;     // 16              // 16  (必须是16的倍数，所以 4->16)
+    mat4 matrix;     // 16              // 32  (列 0)
+                     // 16              // 48  (列 1)
+                     // 16              // 64  (列 2)
+                     // 16              // 80  (列 3)
+    float values[3]; // 16              // 96  (values[0])
+                     // 16              // 112 (values[1])
+                     // 16              // 128 (values[2])
+    bool boolean;    // 4               // 144
+    int integer;     // 4               // 148
+}; 
+```
+
+* 剩下的一个布局是`packed`。当使用紧凑(Packed)布局时，是不能保证这个布局在每个程序中保持不变的（即非共享），因为它允许编译器去将uniform变量从Uniform块中优化掉，这在每个着色器中都可能是不同的。
+
+##### 使用Uniform缓冲
+
+这里其实熟悉两个概念就好了，在shader内部定义的叫uniform block，在程序中定义的叫uniform buffer。想让uniform buffer的数据传输到uniform block上时，我们需要引入绑定点这些概念，一个uniform block一个绑定点，一个uniform buffer可以绑定到多个绑定点上（借助glBindBufferRange来实现）。
+
+![](./img/uniformBlockBind.png)
+
+* **将uniform block绑定到Binding points上的方法**
+
+  * 首先，从shaderProgram中查询到这个unifromBlock的索引（index）,之后使用glUniformBlockBinding，它接收shaderProgramID, 索引index以及绑定点的值。例子如下：
+
+  ```c++
+  unsigned int lights_index = glGetUniformBlockIndex(shaderA.ID, "Lights");   
+  glUniformBlockBinding(shaderA.ID, lights_index, 2);
+  ```
+
+  * 注意以上步骤需要对每个定义了相同名字的uniform block需要设置一遍（获取对应block index，然后在c++层绑定到相应的binding point）
+  * 从OpenGL4.2开始，我们也可以在uniform block声明的时候推按加一个布局标识符，显示的将Unifrom块的绑定点存储在着色器中，例子如下：
+
+  ```glsl
+  layout(std140, binding = 2) uniform Lights { ... };
+  ```
+
+* **将Uniform buffer 绑定到相同绑定点上的方法**
+
+  * 主要有两种方法，第一种是glBindBufferBase，第二种是glBindBufferRange
+
+  ```c++
+  glBindBufferBase(GL_UNIFORM_BUFFER, 2, uboExampleBlock); 
+  // 或
+  glBindBufferRange(GL_UNIFORM_BUFFER, 2, uboExampleBlock, 0, 152);
+  ```
+
+  可以看到第一种方法直接将uniform buffer绑定到了一个binding point，而第二种方法可以将Uniform buffer的一部分绑定到一个binding point上。通过这种方式，我们可以让不同的Uniform block对应到一个uniform buffer object上。
+
+* **双方Bind结束之后，如何向buffer中添加数据**
+
+  * 使用glBufferSubData
+
+  ```cpp
+  glBindBuffer(GL_UNIFORM_BUFFER, uboExampleBlock);
+  int b = true; // GLSL中的bool是4字节的，所以我们将它存为一个integer
+  glBufferSubData(GL_UNIFORM_BUFFER, 144, 4, &b); 
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  ```
+
+  需要注意的还是偏移量和数据长度，这一点在布局中已经有介绍了。
