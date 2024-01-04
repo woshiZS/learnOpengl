@@ -468,7 +468,7 @@ layout (std140) uniform ExampleBlock
   ```c++
   glBindBufferBase(GL_UNIFORM_BUFFER, 2, uboExampleBlock); 
   // 或
-  glBindBufferRange(GL_UNIFORM_BUFFER, 2, uboExampleBlock, 0, 152);
+  glBindBufferRange(GL_UNIFORM_BUFFER, 2, uboExampleBlock, 0, 152); // 这种方法具有一定的限制，offset据说必须是GL_UNIFORM_BUFFER_OFFSET_ALIGHMENT的倍数
   ```
 
   可以看到第一种方法直接将uniform buffer绑定到了一个binding point，而第二种方法可以将Uniform buffer的一部分绑定到一个binding point上。通过这种方式，我们可以让不同的Uniform block对应到一个uniform buffer object上。
@@ -485,3 +485,13 @@ layout (std140) uniform ExampleBlock
   ```
 
   需要注意的还是偏移量和数据长度，这一点在布局中已经有介绍了。
+
+#### Summary
+
+* 自己实现的过程中，因为使用的是cubemap的场景，所以view mat也不能放一起，只有projection mat是共用的
+
+使用uniform block的好处
+
+* 一次设置很多uniform会比一个一个设置多个uniform要快很多。
+* 比起在多个着色器中修改同样的uniform，在Uniform缓冲中修改一次会更容易一些。
+* 如果使用Uniform缓冲对象的话，你可以在着色器中使用更多的uniform。OpenGL限制了它能够处理的uniform数量，这可以通过GL_MAX_VERTEX_UNIFORM_COMPONENTS来查询(```glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &max_vertex_uniform_cnt);```，这个值跑出来是4096)。当使用Uniform缓冲对象时，最大的数量会更高。所以，当你达到了uniform的最大数量时（比如再做骨骼动画(Skeletal Animation)的时候），你总是可以选择使用Uniform缓冲对象。
