@@ -57,7 +57,6 @@ int main() {
 	glDepthFunc(GL_LEQUAL);
 
 	Shader shader("depthTest.vert", "depthTest.frag");
-    Shader quadShader("quad.vert", "quad.frag");
     Shader skyboxShader("skybox.vert", "skybox.frag");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -179,15 +178,28 @@ int main() {
     // --------------------
     shader.use();
     shader.setInt("skybox", 0);
-
-    quadShader.use();
-    quadShader.setInt("screenTexture", 0);
+    unsigned int matIndice = glGetUniformBlockIndex(shader.getShaderProgramID(), "Matrices");
+    glUniformBlockBinding(shader.getShaderProgramID(), matIndice, 1);
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
+    unsigned int anotherMatIndice = glGetUniformBlockIndex(skyboxShader.getShaderProgramID(), "Matrices");
+    glUniformBlockBinding(skyboxShader.getShaderProgramID(), anotherMatIndice, 1);
+
+    // uniform buffer object 
+    unsigned int ubo;
+    glGenBuffers(1, &ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glBufferData(GL_UNIFORM_BUFFER, 64, nullptr, GL_STATIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	lastFrame = static_cast<float>(glfwGetTime());
+    int vUniformCnt, fUniformCnt;
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &vUniformCnt);
+    glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &fUniformCnt);
 
+    int res = vUniformCnt + fUniformCnt;
     // skybox part
     std::vector<std::string> faces
     {
@@ -251,7 +263,7 @@ int main() {
 
     glGenBuffers(1, &skyboxVBO);
     glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), (void*)skyboxVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), (void*)skyboxVertices, GL_STATIC_DRAW); // allocate memory
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -271,6 +283,13 @@ int main() {
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = camera.GetProjectionMatrix();
 
+        // with codes below, we dont't need to set uniform vars for each shader again and again.
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+        //glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+
         /*glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);*/
         // render
         // ------
@@ -278,7 +297,7 @@ int main() {
         shader.use();
         glm::mat4 model = glm::mat4(1.0f);
         shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
+        //shader.setMat4("projection", projection);
         shader.setVec3("cameraPos", glm::value_ptr(camera.GetCameraPos()));
 
         
@@ -300,7 +319,7 @@ int main() {
         skyboxShader.use();
         glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
         skyboxShader.setMat4("view", skyboxView);
-        skyboxShader.setMat4("projection", projection);
+        //skyboxShader.setMat4("projection", projection);
         glBindVertexArray(skyboxVAO);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);
