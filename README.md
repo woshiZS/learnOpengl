@@ -495,3 +495,62 @@ layout (std140) uniform ExampleBlock
 * 一次设置很多uniform会比一个一个设置多个uniform要快很多。
 * 比起在多个着色器中修改同样的uniform，在Uniform缓冲中修改一次会更容易一些。
 * 如果使用Uniform缓冲对象的话，你可以在着色器中使用更多的uniform。OpenGL限制了它能够处理的uniform数量，这可以通过GL_MAX_VERTEX_UNIFORM_COMPONENTS来查询(```glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &max_vertex_uniform_cnt);```，这个值跑出来是4096)。当使用Uniform缓冲对象时，最大的数量会更高。所以，当你达到了uniform的最大数量时（比如再做骨骼动画(Skeletal Animation)的时候），你总是可以选择使用Uniform缓冲对象。
+
+### 几何着色器
+
+几何着色器用于变换后者生成不同的图元。
+
+### 抗锯齿
+
+本节主要讲述了MSAA，MSAA的大致思想就是在每个像素位置做多个采样点，根据覆盖到的采样点数量以及没有覆盖到的采样点数量做插值，概念上来说较为明了，但是实践起来稍微复杂，尤其是离屏MSAA，步骤繁多。
+
+#### 主屏幕上的MSAA
+
+主要是在创建window部分做就ok了。
+
+```c++
+glfwWindowHint(GLFW_SAMPLES, 4);
+glEnable(GL_MULTISAMPLE);
+```
+
+#### 离屏MSAA
+
+如果希望在自己创建的Framebuffer上做MSAA，步骤还会更加复杂。
+
+```c++
+unsigned int framebuffer;
+glGenFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+unsigned int textureMulSam;
+glGenTexture(1, &textureMulSam);
+glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, textureMulSam);
+glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, WIDTH, HEIGHT, GL_TRUE);
+glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TXTURE_2D_MULTISAMPLE, textureMulSam, 0);
+
+unsigned int rbo;
+glGenRenderbuffers(1, &rbo);
+glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, WIDTH, HEIGHT);
+glBindRenderbuffer(GL_RENDERBUFFER, 0);
+glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    // ERROR HANDLING
+
+// Blit, 默认从READ_FRAMEBUFFER传送到DRAW_FRAMEBUFFER, 因此传送之前现需要绑定一下
+glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // 如果是离屏后处理，那么这里的第二个参数是中介FBO
+
+```
+
+#### 不采用中介FBO的离屏AA
+
+如果不使用中介FBO，而是直接传入多重采样的纹理图像，需要将采样器类型额外设置
+
+```glsl
+uniform sampler2DMS screenTextureMS;
+
+vec4 colorSample = texelFetch(screenTextureMS, TexCoords, 3); // 从0， 1， 2， 3开始取
+```
+
