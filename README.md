@@ -500,6 +500,58 @@ layout (std140) uniform ExampleBlock
 
 几何着色器用于变换后者生成不同的图元。
 
+### 实例化（Instancing）
+
+如果大部分的木星包含的是同一组数据，只不过进行的是不同的世界空间变化，这种情况下就可以使用实例化渲染，将
+
+```c++
+// glDrawArrays => glDrawArraysInstanced
+// glDrawElements => glDrawElementsInstanced
+```
+
+后者提供了一个额外的参数，实例化调用次数。
+
+* 但是，光有实例化次数还是没有用，我们还需要向着色器提供不同的世界变换矩阵。
+* 使用实例化渲染时，GLSLS在顶点着色器中内嵌的内建变量，`gl_InstanceID`, 它会从0开始，在每个实例被渲染时候加一，此时，我们的顶点着色器变为
+
+```glsl
+#version 330
+layout(location = 0)in vec2 aPos;
+layout(location = 1)in vec3 aColor;
+
+out vec3 fcolor;
+uniform vec2 offsets[100];
+
+void main()
+{
+    vec2 offset = offsets[gl_InstanceID];
+    gl_Position = vec4(aPos + offset, 0.0, 1.0);
+    fcolor = aColor;
+}
+```
+
+* 在正式执行这个顶点着色器之前，我们需要将uniform数据传送到顶点着色器。
+
+#### 实例化数组
+
+以上的这种方式有一个缺点，就是我们渲染的实例个数较大时，可能会超过uniform数据的上限，这时候我们就需要使用实例化数组，实例化数组与普通的顶点属性没有太大区别，我们只需要告诉gl每次更新对应位置顶点数据的频率即可。默认情况下是逐顶点更新数据，使用```glVertexAttribDivisor```即可改变对应顶点属性的更新频率。
+
+```c++
+unsigned int instanceVBO;
+glGenBuffers(1, &instanceVBO);
+glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+glEnableVertexAttribArray(2);
+glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+glBindBuffer(GL_ARRAY_BUFFER, 0);
+glVertexAttribDivisor(2, 1);
+```
+
+可以看到最后一行，对索引值为2的顶点属性设置了更新评率，第二个参数是0时，表示每个顶点更新一次，如果是大于0的数字，则表示每隔多少个实例更新一次。这里设置为1，则说明每隔一个实例更新一次（就是每个实例都会更新一次）
+
 ### 抗锯齿
 
 本节主要讲述了MSAA，MSAA的大致思想就是在每个像素位置做多个采样点，根据覆盖到的采样点数量以及没有覆盖到的采样点数量做插值，概念上来说较为明了，但是实践起来稍微复杂，尤其是离屏MSAA，步骤繁多。
