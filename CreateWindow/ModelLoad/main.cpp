@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cstdlib>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -55,83 +56,71 @@ int main() {
 	stbi_set_flip_vertically_on_load(true);
 	glEnable(GL_DEPTH_TEST);
 
-	Shader ourShader("modelLoad.vert", "modelLoad.frag");
+	Shader instanceShader("instancing.vert", "instancing.frag");
+	Shader rockShader("rock.vert", "rock.frag");
+	Model planet("Planet/planet.obj");
+	Model rock("rock/rock.obj");
 
-	Model ourModel("nanosuit.obj");
+	// set rock model matrix
+	unsigned int amount = 20000;
+	glm::mat4* modelMatrices = new glm::mat4[amount];
+	srand(glfwGetTime());
+	float radius = 50.0f;
+	float offset = 2.5f;
 
-	lastFrame = static_cast<float>(glfwGetTime());
-
-	ourShader.use();
-	ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-	ourShader.setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
-	ourShader.setVec3("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
-	ourShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
-	ourShader.setFloat("material.shininess", 0.0f);
-
-	float quadVertices[] = {
-		// Î»ÖÃ          // ÑÕÉ«
-		-0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-		 0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-		-0.05f, -0.05f,  0.0f, 0.0f, 1.0f,
-
-		-0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-		 0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-		 0.05f,  0.05f,  0.0f, 1.0f, 1.0f
-	};
-
-	// transfer uniform offsets to vertex shader
-	glm::vec2 translations[100];
-	int index = 0;
-	const float offset = 0.1f;
-	for (int y = -10; y < 10; y += 2)
+	for (size_t i = 0; i < amount; ++i)
 	{
-		for (int x = -10; x < 10; x += 2)
-		{
-			glm::vec2 translation;
-			translation.x = (float)x / 10.0f + offset;
-			translation.y = (float)y / 10.0f + offset;
-			translations[index++] = translation;
-		}
+		glm::mat4 model(1.0f);
+		// displace on circle with offset [-offset, offset]
+		float angle = (float)i / (float)amount * 360.0f;
+		float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+		float x = sin(angle) * radius + displacement;
+		displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+		float z = cos(angle) * radius + displacement;
+		displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+		float y = displacement * 0.4f;
+		model = glm::translate(model, glm::vec3(x, y, z));
+
+		// scale
+		float scale = (rand() % 20) / 100.0f + 0.05;
+		model = glm::scale(model, glm::vec3(scale));
+
+		// rotation
+		float rotAngle = (rand() % 360);
+		model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+		// possible have problems
+		modelMatrices[i] = std::move(model); 
 	}
 
-	Shader quadShader("quad.vert", "quad.frag");
-	/*quadShader.use();*/
-	/*for (int i = 0; i < 100; ++i)
-	{
-		std::stringstream ss;
-		std::string index;
-		ss << i;
-		index = ss.str();
-		quadShader.setVec2("offsets[" + index + "]", glm::value_ptr(translations[i]));
-	}*/
+	// buffer data to rock's meshes;
+	const std::vector<Mesh>& meshes = rock.getMeshes();
+	unsigned int vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	// can't use sizeof modelMatrices which will be 8(a pointer size);
+	glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+	for (size_t i = 0; i < meshes.size(); ++i) {
+		unsigned int vao = meshes[i].getVAO();
+		glBindVertexArray(vao);
+		
+		GLsizei vec4Size = sizeof(glm::vec4);
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, 0);
+		glEnableVertexAttribArray(4);
+		glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
+		glEnableVertexAttribArray(5);
+		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)( 2 * vec4Size));
+		glEnableVertexAttribArray(6);
+		glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
 
-	// quad vertex setup
-	unsigned int quadVAO, quadVBO;
-	glGenVertexArrays(1, &quadVAO);
-	glBindVertexArray(quadVAO);
-	glGenBuffers(1, &quadVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+		glVertexAttribDivisor(3, 1);
+		glVertexAttribDivisor(4, 1);
+		glVertexAttribDivisor(5, 1);
+		glVertexAttribDivisor(6, 1);
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
-
-	unsigned int offsetVBO;
-	glGenBuffers(1, &offsetVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, offsetVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(translations), &translations[0], GL_STATIC_DRAW);
-	
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-	glVertexAttribDivisor(2, 1);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER ,0);
-
-	
-
+		glBindVertexArray(0);
+	}
 
 	while(!glfwWindowShouldClose(window))
 	{
@@ -145,22 +134,29 @@ int main() {
 		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//ourShader.use();
-		//glm::mat4 view = camera.GetViewMatrix();
-		//glm::mat4 projection = camera.GetProjectionMatrix();
-		//ourShader.setMat4("projection", glm::value_ptr(projection));
-		//ourShader.setMat4("view", glm::value_ptr(view));
+		
+		glm::mat4 view = camera.GetViewMatrix();
+		glm::mat4 projection = camera.GetProjectionMatrix();
+		instanceShader.use();
+		instanceShader.setMat4("projection", glm::value_ptr(projection));
+		instanceShader.setMat4("view", glm::value_ptr(view));
+		
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+		instanceShader.setMat4("model", glm::value_ptr(model));
+		planet.Draw(instanceShader);
 
-		//glm::mat4 model = glm::mat4(1.0f);
-		//model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-		//model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-		//ourShader.setMat4("model", glm::value_ptr(model));
+		rockShader.use();
+		rockShader.setMat4("projection", glm::value_ptr(projection));
+		rockShader.setMat4("view", glm::value_ptr(view));
+		for (size_t i = 0; i < meshes.size(); ++i)
+		{
+			glBindVertexArray(meshes[i].getVAO());
+			glDrawElementsInstanced(GL_TRIANGLES, meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount);
+		}
 
-		// ourModel.Draw(ourShader);
-
-		glBindVertexArray(quadVAO);
-		quadShader.use();
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100);
+		
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

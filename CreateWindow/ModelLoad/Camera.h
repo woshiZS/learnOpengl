@@ -15,7 +15,7 @@ private:
 	float yaw = -90.0f, pitch = 0.0f;
 	float lastX = 400, lastY = 300;
 	float widthHeightRatio = 800.0f/ 600.0f;
-	float fov = 45.0f, near = 0.1f, far = 100.0f;
+	float fov = 45.0f, near = 0.1f, far = 500.0f;
 	float cameraMoveSpeed = 2.5f;
 	float firstEntered = false;
 	const float sensitivity = 0.05f;

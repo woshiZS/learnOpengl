@@ -36,6 +36,7 @@ public:
 
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
 	void Draw(Shader shader);
+	unsigned int getVAO() const { return VAO; }
 private:
 	unsigned int VAO, VBO, EBO;
 	void setupMesh(); // initialize the buffers, use Draw to draw the meshes.
@@ -54,6 +55,8 @@ public:
 			meshes[i].Draw(shader);
 		}
 	}
+
+	const std::vector<Mesh>& getMeshes()const { return meshes; }
 private:
 	std::map<std::string, Texture> textures_loaded;
 	std::vector<Mesh> meshes;
