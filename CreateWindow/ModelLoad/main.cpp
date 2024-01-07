@@ -54,25 +54,11 @@ int main() {
 	stbi_set_flip_vertically_on_load(true);
 	glEnable(GL_DEPTH_TEST);
 
-	float points[] = {
-	-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // 左上
-	 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // 右上
-	 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // 右下
-	-0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // 左下
-	};
+	
 
 	Shader shader("geo.vert", "geo.frag", "geo.geom");
-
-	unsigned int vao, vbo;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+	
+	Model nanosuit("nanosuit.obj");
 
 
 	while(!glfwWindowShouldClose(window))
@@ -91,8 +77,12 @@ int main() {
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = camera.GetProjectionMatrix();
 		shader.use();
-		glBindVertexArray(vao);
-		glDrawArrays(GL_POINTS, 0, 4);
+		shader.setFloat("time", currentFrame);
+		glm::mat4 model(1.0f);
+		shader.setMat4("model", glm::value_ptr(model));
+		shader.setMat4("view", glm::value_ptr(view));
+		shader.setMat4("projection", glm::value_ptr(projection));
+		nanosuit.Draw(shader);
 
 
 		glfwSwapBuffers(window);
