@@ -55,7 +55,7 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 
 	
-
+	Shader normalShader("normal.vert", "normal.frag");
 	Shader shader("geo.vert", "geo.frag", "geo.geom");
 	
 	Model nanosuit("nanosuit.obj");
@@ -76,9 +76,14 @@ int main() {
 		
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = camera.GetProjectionMatrix();
-		shader.use();
-		shader.setFloat("time", currentFrame);
 		glm::mat4 model(1.0f);
+		normalShader.use();
+		normalShader.setMat4("model", glm::value_ptr(model));
+		normalShader.setMat4("view", glm::value_ptr(view));
+		normalShader.setMat4("projection", glm::value_ptr(projection));
+		nanosuit.Draw(normalShader);
+
+		shader.use();
 		shader.setMat4("model", glm::value_ptr(model));
 		shader.setMat4("view", glm::value_ptr(view));
 		shader.setMat4("projection", glm::value_ptr(projection));
