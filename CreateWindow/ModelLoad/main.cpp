@@ -28,6 +28,7 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	// glfwWindowHint(GLFW_SAMPLES, 4);
 
 	GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
 	if (window == nullptr) {
@@ -53,80 +54,25 @@ int main() {
 	stbi_set_flip_vertically_on_load(true);
 	glEnable(GL_DEPTH_TEST);
 
-	Shader ourShader("modelLoad.vert", "modelLoad.frag");
-	Shader lightShader("light.vert", "light.frag");
-
-	Model ourModel("nanosuit.obj");
-
-	lastFrame = static_cast<float>(glfwGetTime());
-
-	ourShader.use();
-	ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-	ourShader.setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
-	ourShader.setVec3("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
-	ourShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
-	ourShader.setFloat("material.shininess", 0.0f);
-
-	float cubeVertices[] = {
-		-0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-
-		-0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
-		-0.5f, -0.5f,  0.5f,
-
-		-0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
-
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-
-		-0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		-0.5f, -0.5f,  0.5f,
-		-0.5f, -0.5f, -0.5f,
-
-		-0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f, -0.5f
+	float points[] = {
+	-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // 左上
+	 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // 右上
+	 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // 右下
+	-0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // 左下
 	};
 
-	unsigned int lightCubeVAO;
-	glGenVertexArrays(1, &lightCubeVAO);
-	glBindVertexArray(lightCubeVAO);
+	Shader shader("geo.vert", "geo.frag", "geo.geom");
 
-	unsigned int lightVBO;
-	glGenBuffers(1, &lightVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	unsigned int vao, vbo;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-
-	lightShader.use();
-	glm::mat4 lightModel(1.0f);
-	lightModel = glm::translate(lightModel, glm::vec3(0.0f, 0.0f, 0.0f));
-	lightShader.setMat4("model", glm::value_ptr(lightModel));
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
 
 
 	while(!glfwWindowShouldClose(window))
@@ -141,24 +87,13 @@ int main() {
 		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		ourShader.use();
+		
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = camera.GetProjectionMatrix();
-		ourShader.setMat4("projection", glm::value_ptr(projection));
-		ourShader.setMat4("view", glm::value_ptr(view));
+		shader.use();
+		glBindVertexArray(vao);
+		glDrawArrays(GL_POINTS, 0, 4);
 
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-		ourShader.setMat4("model", glm::value_ptr(model));
-
-		 ourModel.Draw(ourShader);
-
-		/*lightShader.use();
-		lightShader.setMat4("projection", glm::value_ptr(projection));
-		lightShader.setMat4("view", glm::value_ptr(view));
-		glBindVertexArray(lightCubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);*/
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

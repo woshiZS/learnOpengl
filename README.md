@@ -500,6 +500,65 @@ layout (std140) uniform ExampleBlock
 
 几何着色器用于变换后者生成不同的图元。
 
+这里按照教程中的例子，直接给出的Geometry shader实例来进行讲解。
+
+```glsl
+#version 330 core
+layout (points) in;
+layout (line_strip, max_vertices = 2) out;
+
+void main() {    
+    gl_Position = gl_in[0].gl_Position + vec4(-0.1, 0.0, 0.0, 0.0); 
+    EmitVertex();
+
+    gl_Position = gl_in[0].gl_Position + vec4( 0.1, 0.0, 0.0, 0.0);
+    EmitVertex();
+    
+    EndPrimitive();
+}  
+```
+
+* 我们首先需要在着色器开始阶段声明图元的类型
+
+```glsl
+layout(<primitive_type) in;
+```
+
+其中primitive_type可以有如下值：
+
+* points
+* lines
+* lines_adjacency
+* triangles
+* triangles_adjacency
+
+除了对输入进行指定之外，我们还需要对输出进行指定，采用如下形式：
+
+```glsl
+layout(<output_format>, max_vertices = <max_vertice_cnt>) out;
+```
+
+其中output_format包括：
+
+* points
+* line_strip
+* triangle_strip
+
+geometry shader还需要一种方法去获取前一阶段shader的输出，这用到了GLSL内建的变量gl_in数组（接口块形式提供）
+
+```glsl
+in gl_Vertex
+{
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
+}gl_in[];
+```
+
+
+
+
+
 ### 实例化（Instancing）
 
 如果大部分的木星包含的是同一组数据，只不过进行的是不同的世界空间变化，这种情况下就可以使用实例化渲染，将

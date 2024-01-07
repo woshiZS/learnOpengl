@@ -8,7 +8,7 @@
 class Shader
 {
 public:
-	Shader(const char* vertexPath, const char* fragmentPath);
+	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath);
 	void use();
 	unsigned int getShaderProgramID();
 	void setBool(const std::string& name, bool value) const;
@@ -21,8 +21,10 @@ public:
 private:
 	std::string vertexString;
 	std::string fragmentString;
+	std::string geometryString;
 	const char* vertexSource;
 	const char* fragmentSource;
+	const char* geometrySource;
 
 	unsigned int ID; // Shader Program ID
 
