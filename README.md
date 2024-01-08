@@ -606,3 +606,61 @@ uniform sampler2DMS screenTextureMS;
 vec4 colorSample = texelFetch(screenTextureMS, TexCoords, 3); // 从0， 1， 2， 3开始取
 ```
 
+## 高级光照篇
+
+### Blinn-Phong
+
+相对来说，计算比较简单，就是将原来视线与反射光线的夹角点乘换为发现与视线和光线的分界线的点乘。
+
+**但是我们需要知道这样相比原来的有点在哪，Blinn-Phong主要还是解决了，当视线与反射光线夹角超过90度的情况下，镜面光突然出现断层导致的不自然情况**
+
+![](./img/blinn-phong.png)
+
+其余的没有太多好说的。
+
+### Gamma矫正
+
+简单来说，就是人眼感知到的亮度和物理上光的强度是不一致的，将光照强度量化在0，1区间内，人眼实际感受到的亮度是物理光的强度的2.2次幂，这个2.2常被称为Gamma系数。
+
+**由于我们在着色器中计算光照的时候，都默认是在线性空间中做的，但是实际显示到屏幕上时可能会比我们期望的要暗一些，因此艺术家的解决方法是做漫反射贴图的时候通常会做的亮一些。而Gamma校正是为了解决这个问题，一般来说Gamma Correction会在将buffer送往显示器之前做一个1/gamma的幂指数运算，最后得到的结果在线性空间内，为什么要在线性空间内部，是因为线性空间符合物理规则，光照结果更具有真实感**
+
+#### Gamma Correction的两种方法
+
+* GL自己设置
+
+```c++
+glEnable(GL_FRAMEBUFFER_SRGB);
+```
+
+缺点是对所有的Framebuffer都会设置，缺少灵活性
+
+* 自己在着色器中设置
+
+```glsl
+void main()
+{
+    // do super fancy lighting in linear space
+    [...]
+    // apply gamma correction
+    float gamma = 2.2;
+    FragColor.rgb = pow(fragColor.rgb, vec3(1.0/gamma));
+}
+```
+
+缺点是需要在场景中的每一个shader中都设置，当然也可以使用后处理方法，将结果绘制到一个FrameBuffer上，然后再绘制到一个quad上。
+
+#### sRGB Texture
+
+引入这个问题的原因是，很多建模制作软件不支持线性空间，导致我们的一些纹理都是根据sRGB空间得来的，因此在我们对最招结果做了gamma校正后，相当于给colorbuffer做了两次gamma校正。
+
+因此我们需要在导入的时候设置texture的格式，但是像specularMaps和Normal Map这种不是在sRGB空间中创造的就不需要设置。
+
+```c++
+glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); 
+```
+
+如果带有alpha通道值，将格式改为GL_SRGB_ALPHA.
+
+#### 光照衰减
+
+讨论了一下没有校正时候，线性的衰减方程更有更好的效果，但是有了gamma校正还是平方衰减比较好。
