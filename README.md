@@ -666,3 +666,267 @@ glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BY
 讨论了一下没有校正时候，线性的衰减方程更有更好的效果，但是有了gamma校正还是平方衰减比较好。
 
 ![](./img/attenuation.png)
+
+### Shadow Mapping（阴影映射）
+
+* 视口大小和shadow map的分辨率差别，不设置成1024有问题么
+* 偏移可以解决普通shadow map导致的黑条问题，但是吐过出现阴影过大，则应该使用正面剔除，让正面完全暴露出来，不是一边在上一边在下，此时就不使用depth map偏移法了。
+* 解决frag在视椎之外的问题，如果在四周的话，切换depth map的clamp方式为clamp to border，如果深度大于1，直接不做阴影处理（因此这种方法在远处就看不到物体的阴影了）
+* shadow map分辨率有限，导致多个fragment采样到一个depth texel，因此会导致阴影边缘锯齿状。可以应用PCF进行柔和，但是放大看仍然会有不真实感。
+* 关于平行光和点光源Shadow map的不同，就是点光源的projection matrix算出来的深度值是非线性的，导致深度值上升的很快，因此深度图基本都是白的。
+
+### Point Shadows(点阴影)
+
+* 上一小节的shadow map还有一个限制就是，它只能在光照的方向上去产生阴影，这一章的重点就是在各个方向上产生阴影。被称之为point shadows或者是omnidirectional shadow maps
+
+* 和上一章最大的不同是我们使用的shadow map的不同，shadow map只存储了一个方向上的shadow map, 如果从各个方向去生成一个shadow Map，并且将每个方向的depth map存储到一个cube map中，这样就可以得到各个方向的深度图了。
+
+* 剩下的难点就是如何去generate cubemap
+
+* 如果为了生成6个depth map而去做6次render pass，这个代价有点过于昂贵，因此我们将利用geometry shader做一些trick.
+
+* Light Space transform.
+
+  * 首先是projection matrix，每个面都是相同的，可以用一个投影矩阵。**需要注意的是fov应该选90度，这样我们可以覆盖6个面**
+  * 最终组合六个方向的lookat矩阵就可以构建出我们的ligh Space transform matrix.
+
+* 如何使用geometry shader去构建不同的6个面
+
+  * 利用gl_Layer往六个不同的面上去发送数据，并且对每个顶点引用相对应面的transform matrix.
+
+  ```glsl
+  #version 330 core
+  layout (triangles) in;
+  layout (triangle_strip, max_vertices=18) out;
+  
+  uniform mat4 shadowMatrices[6];
+  
+  out vec4 FragPos; // FragPos from GS (output per emitvertex)
+  
+  void main()
+  {
+      for(int face = 0; face < 6; ++face)
+      {
+          gl_Layer = face; // built-in variable that specifies to which face we render.
+          for(int i = 0; i < 3; ++i) // for each triangle vertex
+          {
+              FragPos = gl_in[i].gl_Position;
+              gl_Position = shadowMatrices[face] * FragPos;
+              EmitVertex();
+          }    
+          EndPrimitive();
+      }
+  } 
+  ```
+
+* 计算线性的深度值
+
+由于点光源的投影矩阵计算出来得到的深度值是非线性映射的，因此我们需要在片段着色器中重新计算深度值，然后覆写gl_FragDepth这个变量。
+
+```glsl
+#version 330 core
+in vec4 FragPos;
+
+uniform vec3 lightPos;
+uniform float far_plane;
+
+void main()
+{
+    // get distance between fragment and light source
+    float lightDistance = length(FragPos.xyz - lightPos);
+    
+    // map to [0;1] range by dividing by far_plane
+    lightDistance = lightDistance / far_plane;
+    
+    // write this as modified depth
+    gl_FragDepth = lightDistance;
+} 
+```
+
+### Normal Mapping
+
+* 在冯乐乐的那本书里面其实有提到过了，就是用一张贴图记录法线信息，不至于说一个三角形面一个法向量。
+* 法线贴图一般都是以蓝色为基础，因为大部分的法线都会在（0， 0， 1）附近，指向正z轴，然后每个砖块的缝隙上部，法线会往y轴上面走，所以会呈现一种偏绿色的感觉。
+
+![](./img/normalMap.png)
+
+* 注意法线向量的分量范围在-1到1之间，但是颜色分量的范围在0到1之间，因此我们将法线贴图采样出来的值，还要做*2 -1的操作。
+
+```glsl
+uniform sampler2D normalMap;  
+
+void main()
+{           
+    // obtain normal from normal map in range [0,1]
+    normal = texture(normalMap, fs_in.TexCoords).rgb;
+    // transform normal vector to range [-1,1]
+    normal = normalize(normal * 2.0 - 1.0);   
+  
+    [...]
+    // proceed with lighting as normal
+}  
+```
+
+#### Normal map的方向限制
+
+因为Normal Map的方向大多都指向z轴正方向，但是如果mesh换了方向，那么还在世界坐标中计算光照的话就不对了，因此，我们需要在一个法向量都大致指向z轴正方向的坐标系中去做光照计算，这就是切线空间。
+
+* 切线空间又称作TBN空间，Tagent, Bitangent and Normal
+* 文中提到的计算切线和副切线的方法感觉有些繁琐，可以去看看冯乐乐那本书上的内容（教程中介绍的方法是用uv坐标和三角形坐标去做计算）
+* 计算好TBN矩阵之后，我们有两种方式去使用这个矩阵：
+  * 第一种方法是将矩阵传到fragment shader，将法线从切线空间转为世界空间，再做运算
+  * 第二种方法是将TBN矩阵的逆矩阵传到fragment shader，将除了切线以外的所有光照变量转到切线空间，然后做最终的光照运算。
+* 教程虚晃一枪，到最后得出的最优结论是在顶点着色器中计算viewPos和lightPos到切线空间，并且将FragPos也切换到切线空间，这样做的原因是顶点着色器的执行次数相对来说会更少。
+
+#### 复杂模型
+
+在教程中我们是自己算的TBN矩阵，但一般在模型加载的过程中，我们就会算好TBN矩阵，在Assimp导入文件的时候设置````aiProcess_CalcTangentSpace```，Assimp会自动计算TBN矩阵。
+
+* 使用Normal map还有一个好处就是我们可以使用相对较少的数量的三角形来达到比较精细的结果。
+
+#### 格拉姆-施密特正交化
+
+就是大型模型再算切线的时候会做平均化，但是这样得出的TBN矩阵不会是正交矩阵，因此我们需要做这样一个操作使得操作过后得到的矩阵重新正交（这里直接放代码，实际原理也很好理解）
+
+```glsl
+vec3 T = normalize(vec3(model * vec4(aTangent, 0.0)));
+vec3 N = normalize(vec3(model * vec4(aNormal, 0.0)));
+// re-orthogonalize T with respect to N
+T = normalize(T - dot(T, N) * N);
+// then retrieve perpendicular vector B with the cross product of T and N
+vec3 B = cross(N, T);
+
+mat3 TBN = mat3(T, B, N)  
+```
+
+假设T, N不垂直，那么就从T往N上投影，用T减去这个投影长度向量，然后重新算出来一个真正的和N垂直的T，再利用N， T叉乘得到副切线。
+
+### 视差贴图
+
+和法线贴图类似，也是一种给mesh表面真实感的技术手段，在介绍完法线空间之后更适合来介绍视差贴图。
+
+* 视差贴图其实就是在texture中去存储高度信息，在每个texel中存储不同的高度值。
+* 普通情况下，让顶点做位移，以达到高度不同的效果，需要很多顶点数据，但是使用了视差贴图之后，我们只需要很少的顶点数据就能让场景看上去具有很多的深度信息。
+
+### HDR
+
+* 通常情况下，我们计算出来的亮度值和颜色值都在0到1之间，如果场景中的光源是这些颜色的数值超过1，这些值也会被clamp到1，这样导致场景看上去效果不是那么好（因为很多片段都是1的颜色值，导致图片中一大块区域都是亮的）
+* 如果允许颜色超过1，那么我们就在一个high dynamic range中进行渲染工作，这就叫做HDR
+* 将颜色渲染到HDR范围，然后再压缩到0到1之间被称作tone mapping.
+* tone mapping非常重要的一点就是将HDR色域转换到LDR色域时候，保留更多的细节。
+* HDR还有一个好处就是它解放了光照系数的范围，之前可能多亮的光强都会被clamp到0，1之间，但是现在我们可以对强度差异很大的光源设置成差异特别大的值，例如太阳的光照强度设置成100.
+
+#### Floating point framebuffer
+
+* 将Framebuffer的格式设置为GL_RGB时，OpenGL会自动将这些值clamp到0，1之间再存储到Framebuffer之中，如果我们将Framebuffer的格式设置为GL_RGB16F, GL_RGBA16F， GL_RGB32F, GL_RGBA32F时，framebuffer就可以存储在0到1之外的浮点值。
+* 如果需要改变framebuffer的格式，我们只需要改变绑定的color buffer的格式
+
+```c++
+glBindTexture(Gl_TEXTURE_2D, colorBuffer);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+```
+
+* 所以大致的渲染流程是将正常的渲染到一个attach了float point的framebuffer上，然后再利用这个framebuffer作一个texture，渲染到一个quad上。
+* 但是由于float point framebuffer中存储的值不在0，1之间，因此超出这个范围的值直接被采样然后输出到framebuffer 0的话，就会被clamp到1，导致丢失了很多光照细节，因此引入了我们所需要的Tone mapping算法。
+
+#### Tone mapping
+
+  教程中介绍的Tone mapping是Reinhard tone mapping(莱茵哈特算法？大锤还会干这个？)
+
+```glsl
+void main()
+{             
+    const float gamma = 2.2;
+    vec3 hdrColor = texture(hdrBuffer, TexCoords).rgb;
+  
+    // reinhard tone mapping
+    vec3 mapped = hdrColor / (hdrColor + vec3(1.0));
+    // gamma correction 
+    mapped = pow(mapped, vec3(1.0 / gamma));
+  
+    FragColor = vec4(mapped, 1.0);
+}
+```
+
+可以看到，这个所谓的tone mapping算法，就是在分母加了一个全1变量，非常简单的处理。
+
+此外，还有一种利用曝光参数的tone mapping调试方法（就比如说做一个长曝光，白天光线好的时候曝光系数要小点，晚上光线较暗时，需要我们将曝光系数调高一点），同理，我们可以根据光源的实际情况来调整曝光参数的大小。
+
+```glsl
+uniform float exposure;
+
+void main()
+{             
+    const float gamma = 2.2;
+    vec3 hdrColor = texture(hdrBuffer, TexCoords).rgb;
+  
+    // exposure tone mapping
+    vec3 mapped = vec3(1.0) - exp(-hdrColor * exposure);
+    // gamma correction 
+    mapped = pow(mapped, vec3(1.0 / gamma));
+  
+    FragColor = vec4(mapped, 1.0);
+}
+```
+
+我们可以看到如果曝光系数大，我们得场景就会更亮一些，反之则更暗一些，因此可以调整曝光系数来选看清明亮处还是暗处的细节。
+
+### Bloom
+
+bloom的意思是盛开，开放，在图形学中的实际含义其实是在光源终边添加光晕，在光源旁边好像溢出的感觉一样。这样做可以极大地提升光源的视觉效果。
+
+* Bloom比较适合和HDR结合在一起去实现，我们拿到HDR buffer之后。首先Extract图像中较为亮的区域，fragment的亮度超过一定阈值才保留，否则则转变为黑色。之后对这些图像中较为明亮的区域做一些filter，之后再将这些做了模糊处理的图像和原来的HDR图像结合在一起。
+
+![](./img/bloom.png)
+
+* 泛光的重点在于将明亮区域模糊化处理的模糊算法。
+
+#### 提取图像中明亮的部分
+
+我们可以使用MRT技术，即Multiple Render Target技术来在一次Render pass中渲染出两张图像。 实际上是在一个fragment shader中指定多个输出。
+
+```glsl
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BrightColor;  
+```
+
+**之前在framebuffer那一章节，我们在添加Texture到Framebuffer上时用的GL_COLOR_ATTACHMENT0选项，之后其实还有GL_COLOR_ATTACHMENT1等等**， 代表了我们可以给Framebuffer附着的多个color buffer，由此对应fragment的MRT。
+
+* 在通过glDrawBuffers指定我们需要绘制的两个buffer，否则默认情况下，只会绘制第一个color buffer。
+
+```c++
+unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+glDrawBuffers(2, attachments);  
+```
+
+* 如此设置之后，就可以在frag shader中去output两个输出。
+
+```glsl
+#version 330 core
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BrightColor;
+
+[...]
+
+void main()
+{            
+    [...] // first do normal lighting calculations and output results
+    FragColor = vec4(lighting, 1.0);
+    // check whether fragment output is higher than threshold, if so output as brightness color
+    float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.0)
+        BrightColor = vec4(FragColor.rgb, 1.0);
+    else
+        BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+```
+
+我们可以直接对得到的第二个输出纹理做box filter，但是教程里提到另外一种filter方式，那就是高斯模糊。
+
+#### Gaussian blur
+
+就是正态分布，最重要的是我们可以通过在两个方向上做卷积的方式来达到在一个方形内部做卷积的结果，这个方法叫两步高斯模糊。
+
+我们设置每个偏移对应的概率，然后创建两个fbo，分别进行水平和竖直方向的模糊。
+
+（**实践看上去还比较复杂，之后把概念快速过一遍还要回来敲一下代码练下手**）
