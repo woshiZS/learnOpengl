@@ -53,6 +53,21 @@ class vec3
             return sqrt(length_squared());
         }
 
+        static vec3 random()
+        {
+            return vec3(random_double(), random_double(), random_double());
+        }
+
+        static vec3 random(double min, double max)
+        {
+            return vec3(random_double(min, max), random_double(min, max), random_double(min, max));
+        }
+
+        bool near_zero() const
+        {
+            auto s = 1e-8;
+            return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
+        }
 };
 
 using point3 = vec3;
@@ -116,6 +131,53 @@ inline vec3 cross(const vec3& u, const vec3& v)
 inline vec3 unit_vector(vec3 v) 
 {
     return v / v.length();
+}
+
+inline vec3 random_in_unit_sphere()
+{
+    while(true)
+    {
+        auto p = vec3::random(-1, 1);
+        if(p.length_squared() < 1)
+            return p;
+    }
+}
+
+inline vec3 random_unit_vector()
+{
+    return unit_vector(random_in_unit_sphere());
+}
+
+inline vec3 random_on_hemisphere(const vec3& normal)
+{
+    vec3 on_unit_sphere = random_unit_vector();
+    if(dot(normal, on_unit_sphere) > 0.0)
+        return on_unit_sphere;
+    return -on_unit_sphere;
+}
+
+inline vec3 random_in_unit_disk()
+{
+    while(true)
+    {
+        auto p = vec3(random_double(-1, 1), random_double(-1, 1), 0);
+        if(p.length_squared() < 1)
+            return p;
+    }
+}
+
+inline vec3 reflect(const vec3& v, const vec3& n)
+{
+    return v - 2 * dot(v, n) * n;
+}
+
+// different from the tutorial's code
+inline vec3 refract(const vec3& v, const vec3& n, double etai_over_etai)
+{
+    auto cos_theta = fmin(dot(-v, n), 1.0);
+    vec3 rperpendicular = etai_over_etai * (v + cos_theta * n);
+    vec3 rparallel = -1 * sqrt(fabs(1.0 - rperpendicular.length_squared())) * n;
+    return rperpendicular + rparallel;
 }
 
 #endif
