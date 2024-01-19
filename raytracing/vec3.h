@@ -5,6 +5,7 @@
 #include <iostream>
 
 using std::sqrt;
+using std::fabs;
 
 class vec3
 {
@@ -18,7 +19,7 @@ class vec3
         double y() const {return e[1];}
         double z() const {return e[2];}
 
-        vec3 operator-() const {return vec3(-e[0], e[1], e[2]);}
+        vec3 operator-() const {return vec3(-e[0], -e[1], -e[2]);}
         double operator[](int i) const {return e[i];}
         double& operator[](int i) {return e[i];}
 
@@ -43,30 +44,26 @@ class vec3
             return *this *= 1/t;
         }
 
-        double length_squared() const
-        {
-            return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
-        }
-
-        double length() const
-        {
+        double length() const {
             return sqrt(length_squared());
         }
 
-        static vec3 random()
-        {
+        double length_squared() const {
+            return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+        }
+
+        bool near_zero() const {
+            // Return true if the vector is close to zero in all dimensions.
+            auto s = 1e-8;
+            return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
+        }
+
+        static vec3 random() {
             return vec3(random_double(), random_double(), random_double());
         }
 
-        static vec3 random(double min, double max)
-        {
-            return vec3(random_double(min, max), random_double(min, max), random_double(min, max));
-        }
-
-        bool near_zero() const
-        {
-            auto s = 1e-8;
-            return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
+        static vec3 random(double min, double max) {
+            return vec3(random_double(min,max), random_double(min,max), random_double(min,max));
         }
 };
 
