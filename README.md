@@ -930,3 +930,137 @@ void main()
 我们设置每个偏移对应的概率，然后创建两个fbo，分别进行水平和竖直方向的模糊。
 
 （**实践看上去还比较复杂，之后把概念快速过一遍还要回来敲一下代码练下手**）
+
+### Deffered Shading
+
+我们首先需要明白Deffered Shading适用的场景，场景中物体特别多，光源也比较多的时候，比较适合Deffered Shading，传统的forward rendering是逐object进行顶点和片段着色，但是光源和物体比较多的时候，很多着色计算部分都是多余的（因为物体太多会造成很多遮挡关系）
+
+* 解决方法，两次render pass，一次渲染出geometry buffer（这个就是所谓的G-buffer），包括了position，normal，albedo,  specular等信息。第二次render pass利用G-buffer中的信息做光照计算。**需要注意的是在第二次render pass中我们是逐fragment去做计算的，而非逐object去看，因此会节省大量的计算**
+* 下图阐述了deferred shading的过程：
+
+![](./img/deferred_shading.png)
+
+因为G-buffer中存储的片段一定是最后通过深度测试显示在屏幕上的片段，因此我们只需要对每个片段做一次光照计算
+
+* 缺点，除了需要存储额外几个color buffer之外，deferred shading 还不适用于需要进行透明度混合的情况，并且deferred shading不太适合MSAA，一个是由于历史缘故（早期的图形硬件API不支持MRT和MSAA同时开启），另外就是由于第一次render pass有多个render target，因此需要对每个RT做super sampling对于显存来说是一个极大的浪费。 所一般来说Deferred shading做AA使用FXAA。
+
+#### The G-buffer
+
+G-buffer实际上是我们计算光照所用到的数据的集合：
+
+* fragment的世界坐标系位置
+* diffuse color也被叫做albedo系数
+* 片元的法线数据
+* 镜面光强度数据，应该就是指做指数运算的那个指数
+*  各种光源的数据，位置，光的颜色等
+* 摄像机（或者说观测者）的位置
+
+最下面两项可以使用uniform来直接进行传递。
+
+借用教程中的伪代码来阐述渲染流程：
+
+```c++
+while(...) // render loop
+{
+    // 1. geometry pass: render all geometric/color data to g-buffer 
+    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+    glClearColor(0.0, 0.0, 0.0, 1.0); // keep it black so it doesn't leak into g-buffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    gBufferShader.use();
+    for(Object obj : Objects)
+    {
+        ConfigureShaderTransformsAndUniforms();
+        obj.Draw();
+    }  
+    // 2. lighting pass: use g-buffer to calculate the scene's lighting
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    lightingPassShader.use();
+    BindAllGBufferTextures();
+    SetLightingUniforms();
+    RenderQuad();
+}
+```
+
+之后的工作就是创建gBuffer，然后attach四个colorattachment上去，对于精度要求比较高的位置和法线，我们使用GL_RGBA16F的格式，对于精度比较低的albedo和specular texture，我们只需要使用普通的每位置8bit精度即可。另外注要使用RGBA格式的原因是数据对对齐。如果不使用RGBA格式，有的GPU上可能会出问题。
+
+```c++
+unsigned int gBuffer;
+glGenFramebuffers(1, &gBuffer);
+glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+unsigned int gPosition, gNormal, gColorSpec;
+
+// - position color buffer
+glGenTextures(1, &gPosition);
+glBindTexture(GL_TEXTURE_2D, gPosition);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+
+// - normal color buffer
+glGenTextures(1, &gNormal);
+glBindTexture(GL_TEXTURE_2D, gNormal);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+glTexParamteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+
+// color + specular buffer
+glGenTextures(1, &gColorSpec);
+glBindTexture(GL_TEXTURE_2D, gColorSpec);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLORATTACHMENT2, GL_TEXTURE_2D, gColorSpec, 0);
+
+unsigned int attachments[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+
+glDrawBuffers(3, attachments);
+```
+
+然后使用对应的三输出fragment shader，输出到三个texture中。
+
+```glsl
+#version 330 core
+layout (location = 0) out vec3 gPosition;
+layout (location = 1) out vec3 gNormal;
+layout (location = 2) out vec4 gAlbedoSpec;
+
+in vec2 TexCoords;
+in vec3 FragPos;
+in vec3 Normal;
+
+uniform sampler2D texture_diffuse1;
+uniform sampler2D texture_specular1;
+
+void main()
+{    
+    // store the fragment position vector in the first gbuffer texture
+    gPosition = FragPos;
+    // also store the per-fragment normals into the gbuffer
+    gNormal = normalize(Normal);
+    // and the diffuse per-fragment color
+    gAlbedoSpec.rgb = texture(texture_diffuse1, TexCoords).rgb;
+    // store specular intensity in gAlbedoSpec's alpha component
+    gAlbedoSpec.a = texture(texture_specular1, TexCoords).r;
+}
+```
+
+请注意在这个fragment shader中我们存储的数值都是在世界坐标系中的。
+
+#### The deferred lighting pass
+
+获取这位置，法线，以及漫反射和反射，都从texture中采样得到。
+
+#### 结合deferred shading和forward shading
+
+重点在于获取之前渲染gbuffer的深度信息，只需要glBlitFramebuffer这个函数即可。
+
+#### 如何处理大量光源
+
+光体积（light Volumes），目前来看就是计算光源的时候，每个光源有一定的照亮范围，然后我们对每个片元进行计算的时候进行剪枝（照不到的）。这个可照明半径就是光体积。
+
+* 需要注意的是，光照的衰减方程，
+
+[deferred shading and light volumes](https://www.reddit.com/r/opengl/comments/72ez7b/deferred_rendering_light_volumes_is_this_approach/)
+
