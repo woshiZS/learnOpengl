@@ -27,6 +27,9 @@
     <ClInclude Include="Camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ComputeShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="model.cpp">
@@ -38,10 +41,13 @@
     <ClCompile Include="Shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="D:\glad\src\glad.c">
+    <ClCompile Include="Camera.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
+    <ClCompile Include="ComputeShader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="glad.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -58,5 +64,31 @@
     <None Include="light.vert">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="instancing.vert">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="instancing.frag">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="normal.vert">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="normal.frag">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="quad.frag">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="test.comp">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="quad.vert">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\CreateWindow\box.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

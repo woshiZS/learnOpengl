@@ -131,22 +131,34 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="ComputeShader.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="D:\glad\src\glad.c" />
+    <ClCompile Include="ComputeShader.cpp" />
+    <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="instancing.frag" />
+    <None Include="instancing.vert" />
     <None Include="light.frag" />
     <None Include="light.vert" />
     <None Include="modelLoad.frag" />
     <None Include="modelLoad.vert" />
+    <None Include="normal.frag" />
+    <None Include="normal.vert" />
+    <None Include="quad.frag" />
+    <None Include="quad.vert" />
+    <None Include="test.comp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\CreateWindow\box.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
