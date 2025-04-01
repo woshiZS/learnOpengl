@@ -13,3 +13,4 @@ include_directories(${GL_INCLUDE_DIRS})
 file(GLOB_RECURSE COMMON_FILES "common/*.h" "common/*.cpp" "common/*.c")
 
 add_subdirectory(TestPlayGround)
+add_subdirectory(PBR)
