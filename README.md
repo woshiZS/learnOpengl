@@ -1064,3 +1064,6 @@ void main()
 
 [deferred shading and light volumes](https://www.reddit.com/r/opengl/comments/72ez7b/deferred_rendering_light_volumes_is_this_approach/)
 
+### PBR
+
+* glfwMakeContextConcurrent: 可以简单理解为每一个window对应一个state，对应的gl指令都是针对这个状态机的
