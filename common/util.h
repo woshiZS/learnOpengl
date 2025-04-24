@@ -5,6 +5,8 @@
 
 unsigned int loadTexture(const char* path);
 
+unsigned int loadHDRTexture(const char* path);
+
 class GLFWUtil {
  public:
   static GLFWUtil& GetInstance() 
